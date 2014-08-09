@@ -1,0 +1,22 @@
+export PREFIX_DIR="$HOME/prefix-for-glyphnit"
+export CXX="clang++"
+export CC="clang"
+export CFLAGS="-O2 -g"
+export CXXFLAGS="-O2 -g -stdlib=libc++ -std=c++1y"
+export LDFLAGS="-O2 -g"
+export PKG_CONFIG_LIBDIR="$PREFIX_DIR/lib/pkgconfig"
+
+# libpng
+xxxx/configure --enable-static --disable-shared --prefix=$PREFIX_DIR
+
+# FreeType
+xxxx/configure --enable-biarch-config --enable-static --disable-shared --prefix=$PREFIX_DIR
+
+# ICU4C
+xxxx/source/configure --disable-layout --enable-static --disable-shared --prefix=$PREFIX_DIR
+
+# HarfBuzz
+xxxx/configure --with-icu=yes --with-freetype=yes --enable-static --disable-shared --prefix=$PREFIX_DIR
+
+# FreeType - rebuilding FreeType so it can use HarfBuzz (probably not really needed though)
+xxxx/configure --enable-biarch-config --enable-static --disable-shared --prefix=$PREFIX_DIR

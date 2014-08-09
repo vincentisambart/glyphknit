@@ -1,0 +1,43 @@
+prefix_dir = $$HOME/prefix-for-glyphnit
+gtest_dir = ../../src/googletest
+cxx = clang++
+recent_cxx_flags = -stdlib=libc++ -std=c++1y
+warnings_flags = -Weverything -Wno-c++98-compat -Wno-c99-extensions -Wno-documentation -Wno-documentation-unknown-command -Wno-c++98-compat-pedantic -Wno-padded -Wno-deprecated -Wno-weak-vtables -Wno-missing-prototypes -Wno-sign-conversion
+cppflags = -I$prefix_dir/include -I$prefix_dir/include/harfbuzz -I$prefix_dir/include/freetype2 -I./include -I$gtest_dir/include -DU_USING_ICU_NAMESPACE=0
+cflags_nowarning = -O2 $cppflags
+cflags = $cflags_nowarning $warnings_flags
+cxxflags = $cflags $recent_cxx_flags
+ldflags = -L$prefix_dir/lib -framework ApplicationServices -licuuc -licudata -lharfbuzz -lfreetype -lpng16 -lz -lbz2
+build_dir = ./build
+test_dir = ./test
+src_dir = ./src
+
+rule cxx
+  command = $cxx -MMD -MT $out -MF $out.d $cxxflags -c $in -o $out
+  description = CXX $out
+  depfile = $out.d
+
+rule cxx_gtest
+  command = $cxx $cflags_nowarning -I$gtest_dir -c $in -o $out
+  description = CXX $out
+
+rule ld
+  command = $cxx -o $out $ldflags $in
+  description = LD $out
+
+build $build_dir/test-main.o: cxx $test_dir/test-main.cc
+build $build_dir/test-typeset.o: cxx $test_dir/test-typeset.cc
+build $build_dir/test-script_iterator.o: cxx $test_dir/test-script_iterator.cc
+build $build_dir/test-language.o: cxx $test_dir/test-language.cc
+
+build $build_dir/text_block.o: cxx $src_dir/text_block.cc
+build $build_dir/typesetter.o: cxx $src_dir/typesetter.cc
+build $build_dir/mini_coretext_typesetter.o: cxx $src_dir/mini_coretext_typesetter.cc
+build $build_dir/script_iterator.o: cxx $src_dir/script_iterator.cc
+build $build_dir/language.o: cxx $src_dir/language.cc
+build $build_dir/font.o: cxx $src_dir/font.cc
+
+build $build_dir/gtest-all.o: cxx_gtest $gtest_dir/src/gtest-all.cc
+
+build $build_dir/test: ld $build_dir/text_block.o $build_dir/typesetter.o $build_dir/mini_coretext_typesetter.o $build_dir/gtest-all.o $build_dir/test-typeset.o $build_dir/test-main.o $build_dir/script_iterator.o $build_dir/test-script_iterator.o $build_dir/language.o $build_dir/test-language.o $build_dir/font.o
+default $build_dir/test

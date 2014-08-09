@@ -1,0 +1,5 @@
+All the files in this data/ directory come from different sources and belong to their original owners:
+- iso15924-utf8-20131012.txt comes from http://www.unicode.org/iso15924/codelists.html
+- ISO-639-2_utf-8.txt comes from http://www.loc.gov/standards/iso639-2/
+- Files in UCD-7.0.0/ come from http://www.unicode.org/Public/7.0.0/
+- Files in iso-639-3_Code_Tables_20140320/ come from http://www-01.sil.org/iso639-3/
