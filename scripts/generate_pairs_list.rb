@@ -146,13 +146,6 @@ struct PairStartsForEnd {
 };
   ENDSTR
 
-  def index_of_sub_array(ary, sub_ary)
-    (ary.length-sub_ary.length+1).times do |i|
-      return i if sub_ary == ary[i..(i+sub_ary.length-1)]
-    end
-    nil
-  end
-
   output_file.puts "// Codepoints are sorted for binary search."
   output_file.puts "static PairStartsForEnd kPairEnds[] = {"
   all_end_codepoints = end_codepoints + start_or_end_codepoints
