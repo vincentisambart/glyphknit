@@ -414,8 +414,8 @@ void Typesetter::DrawToContext(TextBlock &text_block, const size_t width, CGCont
 
   CGContextSetTextMatrix(context, CGAffineTransformIdentity);
   CGFloat total_height = 0;
-  auto last_line = typeset_lines.end();
-  for (auto line_it = typeset_lines.begin(); line_it != last_line; ++line_it) {
+  auto lines_end = typeset_lines.end();
+  for (auto line_it = typeset_lines.begin(); line_it != lines_end; ++line_it) {
     total_height += CoreTextLineHeight(default_ct_font.get());
   }
   total_height += std::round(CTFontGetDescent(default_ct_font.get())) + 0.5;

@@ -50,16 +50,15 @@ UScriptCode GetSimplifiedScript(UChar32 const codepoint) {
 
 template <typename Callable>
 void IfIsPossiblePairEnd(UChar32 const codepoint, Callable to_call) {
-  auto last = std::end(kPairEnds);
-  auto first_possible_pair = std::lower_bound(std::begin(kPairEnds), last, codepoint, [](const auto &element, const auto &value) {
+  auto possible_pair_begin = std::lower_bound(std::begin(kPairEnds), std::end(kPairEnds), codepoint, [](const auto &element, const auto &value) {
     return element.end_codepoint < value;
   });
-  auto last_possible_pair = first_possible_pair;
-  while (last_possible_pair != last && last_possible_pair->end_codepoint == codepoint) {
-    ++last_possible_pair;
+  auto possible_pair_end = possible_pair_begin;
+  while (possible_pair_end != std::end(kPairEnds) && possible_pair_end->end_codepoint == codepoint) {
+    ++possible_pair_end;
   }
-  if (last_possible_pair != first_possible_pair) {
-    to_call(first_possible_pair, last_possible_pair);
+  if (possible_pair_end != possible_pair_begin) {
+    to_call(possible_pair_begin, possible_pair_end);
   }
 }
 
@@ -101,10 +100,10 @@ ScriptIterator::Run ScriptIterator::FindNextRun() {
       script = last_script_;
     }
     else if (script == USCRIPT_COMMON) {
-      IfIsPossiblePairEnd(codepoint, [this, &script](auto first_possible_pair, auto last_possible_pair) {
+      IfIsPossiblePairEnd(codepoint, [this, &script](auto possible_pair_begin, auto possible_pair_end) {
         for (int stack_index = stack_length_ - 1; stack_index >= 0; --stack_index) {
           auto stack_codepoint = pair_starts_[stack_index].codepoint;
-          if (std::any_of(first_possible_pair, last_possible_pair, [=](auto pair) { return pair.start_codepoint == stack_codepoint; })) {
+          if (std::any_of(possible_pair_begin, possible_pair_end, [=](auto pair) { return pair.start_codepoint == stack_codepoint; })) {
             script = pair_starts_[stack_index].script;
             stack_length_ = stack_index;
             break;
