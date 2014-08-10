@@ -118,8 +118,8 @@ ssize_t Typesetter::CountGlyphsThatFit(TypesettingState &state, ssize_t width) {
       uint32_t current_glyph_cluster = glyph_infos[glyph_index].cluster;
       bool at_start_of_cluster = (glyph_index == 0 || glyph_infos[glyph_index-1].cluster != current_glyph_cluster);
       bool at_end_of_cluster = (glyph_index == glyphs_count - 1 || glyph_infos[glyph_index+1].cluster != current_glyph_cluster);
-      // TODO: u_isspace should not include no-break space
-      bool width_ignored_if_end_of_line = (at_start_of_cluster && at_end_of_cluster && u_isspace(GetCodepoint(state.paragraph_text, state.paragraph_length, current_glyph_cluster)));
+      // u_isWhitespace does not include no-break spaces because they must be handled as non-spacing characters at the end of a line
+      bool width_ignored_if_end_of_line = (at_start_of_cluster && at_end_of_cluster && u_isWhitespace(GetCodepoint(state.paragraph_text, state.paragraph_length, current_glyph_cluster)));
 
       if (!width_ignored_if_end_of_line && x_position + glyph_positions[glyph_index].x_advance > width) {
         return glyphs_fitting_count;
