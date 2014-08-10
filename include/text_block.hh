@@ -33,7 +33,7 @@ namespace glyphknit {
 class TextBlock {
  public:
   // TODO: have a default font it the user does not specify one
-  TextBlock(const SizedFont &default_sized_font) : default_sized_font_{default_sized_font} {}
+  TextBlock(std::shared_ptr<FontFace> default_font_face, float default_font_size) : default_font_face_{default_font_face}, default_font_size_{default_font_size} {}
   ~TextBlock();
 
   void SetText(const uint16_t *, size_t length);
@@ -43,14 +43,23 @@ class TextBlock {
 
   const icu::UnicodeString &text_content() { return string_; }
 
-  const SizedFont &default_sized_font() { return default_sized_font_; }
-  void set_default_sized_font(const SizedFont &font) {
-    default_sized_font_ = font;
+  const std::shared_ptr<FontFace> &default_font_face() { return default_font_face_; }
+  float default_font_size() const { return default_font_size_; }
+  void set_default_font_face(const std::shared_ptr<FontFace> &font_face) {
+    default_font_face_ = font_face;
+  }
+  void set_default_font_size(float &font_size) {
+    default_font_size_ = font_size;
+  }
+  void set_default_font(const std::shared_ptr<FontFace> &font_face, float font_size) {
+    default_font_face_ = font_face;
+    default_font_size_ = font_size;
   }
 
  private:
   icu::UnicodeString string_;
-  SizedFont default_sized_font_;
+  std::shared_ptr<FontFace> default_font_face_;
+  float default_font_size_;
 };
 
 }

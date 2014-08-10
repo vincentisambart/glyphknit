@@ -49,8 +49,9 @@ bool IsCodepointToIgnoreForComparison(UChar32 c) {
 
 template <typename Callable>
 void MiniCoreTextTypesetter::Typeset(TextBlock &text_block, const size_t width, Callable process_frame) {
-  auto default_font = text_block.default_sized_font();
-  auto default_ct_font = default_font.CopyCTFont();
+  const auto &default_font_face = text_block.default_font_face();
+  auto default_font_size = text_block.default_font_size();
+  auto default_ct_font = default_font_face->CreateCTFont(default_font_size);
 
   const void *keys[] = { kCTFontAttributeName };
   const void *values[] = { default_ct_font.get() };

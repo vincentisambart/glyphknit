@@ -345,11 +345,10 @@ void Typesetter::OutputShape(TypesettingState &state) {
 }
 
 void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLines &typeset_lines) {
-  auto default_font = text_block.default_sized_font();
+  const auto &font_face = text_block.default_font_face();
+  auto ft_face = font_face->GetFTFace();
 
-  auto ft_face = default_font.font_face()->GetFTFace();
-
-  const auto font_size = default_font.font_size();
+  auto font_size = text_block.default_font_size();
   const ssize_t width_in_font_units = size_t(double(width) * ft_face->units_per_EM / font_size);
 
   auto hb_buffer = hb_buffer_create();
@@ -406,8 +405,9 @@ static CGFloat CoreTextLineHeight(CTFontRef font) {
 }
 
 void Typesetter::DrawToContext(TextBlock &text_block, const size_t width, CGContextRef context) {
-  auto default_font = text_block.default_sized_font();
-  auto default_ct_font = default_font.CopyCTFont();
+  const auto &default_font_face = text_block.default_font_face();
+  auto default_font_size = text_block.default_font_size();
+  auto default_ct_font = default_font_face->CreateCTFont(default_font_size);
 
   TypesetLines typeset_lines;
   PositionGlyphs(text_block, width, typeset_lines);

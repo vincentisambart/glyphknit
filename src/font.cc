@@ -140,11 +140,4 @@ FontManager::~FontManager() {
   FT_Done_FreeType(ft_library_);
 }
 
-AutoReleasedCFRef<CTFontRef> SizedFont::CopyCTFont() {
-  if (ct_font_.get() == nullptr) {
-    ct_font_ = font_face_->CreateCTFont(font_size_);
-  }
-  return ct_font_;
-}
-
 }

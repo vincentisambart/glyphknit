@@ -51,21 +51,6 @@ class FontFace {
   FT_Face ft_face_;
 };
 
-class SizedFont {
- public:
-  AutoReleasedCFRef<CTFontRef> CopyCTFont();
-  ~SizedFont() {}
-  SizedFont(std::shared_ptr<FontFace> font_face, float size) : font_face_(font_face), font_size_(size), ct_font_(nullptr) {}
-  SizedFont &operator=(const SizedFont &source) = default;
-  std::shared_ptr<FontFace> font_face() const { return font_face_; }
-  float font_size() const { return font_size_; }
-
- private:
-  std::shared_ptr<FontFace> font_face_;
-  float font_size_;
-  AutoReleasedCFRef<CTFontRef> ct_font_;
-};
-
 class FontManager {
  public:
   FT_Library ft_library() const { return ft_library_; }

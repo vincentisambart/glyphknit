@@ -100,8 +100,7 @@ const int kImageHeight = 100;
 void SimpleCompare(const char *text, const char *description, const char *font_name, float font_size, int flags = ComparisonFlags::kDefault) {
   auto font = glyphknit::FontManager::LoadFontFromPostScriptName(font_name);
   assert(font.get() != nullptr);
-  auto sized_font = glyphknit::SizedFont(font, font_size);
-  glyphknit::TextBlock text_block{sized_font};
+  glyphknit::TextBlock text_block{font, font_size};
   text_block.SetText(text);
 
   glyphknit::MiniCoreTextTypesetter ct_typesetter;
