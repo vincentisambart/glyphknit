@@ -39,6 +39,7 @@
 
 namespace glyphknit {
 
+// TODO: Maybe rename to font descriptor?
 class FontFace {
  public:
   ~FontFace();
@@ -49,6 +50,8 @@ class FontFace {
   AutoReleasedCFRef<CTFontRef> CreateCTFont(float size);
 
   // TODO: way to get variations (bold/thin, italic, ...)
+
+  bool operator ==(const FontFace &) const;
 
  private:
   friend class FontManager;

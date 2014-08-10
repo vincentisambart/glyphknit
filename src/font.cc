@@ -117,6 +117,12 @@ FT_Face FontFace::GetFTFace() {
   return ft_face;
 }
 
+bool FontFace::operator ==(const FontFace &compared_to) const {
+  auto font_name = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(font_descriptor_.get(), kCTFontNameAttribute));
+  auto font_name_to_compare_to = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(compared_to.font_descriptor_.get(), kCTFontNameAttribute));
+  return CFEqual(font_name.get(), font_name_to_compare_to.get());
+}
+
 std::shared_ptr<FontFace> FontManager::LoadFontFromPostScriptName(const char *name) {
   auto cf_name = MakeAutoReleasedCFRef(CFStringCreateWithCString(kCFAllocatorDefault, name, kCFStringEncodingUTF8));
   auto basic_descriptor = MakeAutoReleasedCFRef(CTFontDescriptorCreateWithNameAndSize(cf_name.get(), 0.0));
