@@ -26,10 +26,6 @@
 #define GLYPHKNIT_TYPESETTER_H_
 
 #include <vector>
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wshift-sign-overflow"
-#include <hb-ft.h>
-#pragma clang diagnostic pop
 
 #include "text_block.hh"
 

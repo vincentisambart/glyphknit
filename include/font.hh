@@ -30,6 +30,11 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-sign-overflow"
+#include <hb-ft.h>
+#pragma clang diagnostic pop
+
 #include "autorelease.hh"
 
 namespace glyphknit {
@@ -39,8 +44,9 @@ class FontFace {
   ~FontFace();
   AutoReleasedCFRef<CTFontDescriptorRef> font_descriptor() const { return font_descriptor_; }
 
-  AutoReleasedCFRef<CTFontRef> CreateCTFont(float size);
   FT_Face GetFTFace();
+  hb_font_t *GetHBFont();
+  AutoReleasedCFRef<CTFontRef> CreateCTFont(float size);
 
   // TODO: way to get variations (bold/thin, italic, ...)
 
@@ -49,6 +55,7 @@ class FontFace {
   FontFace(AutoReleasedCFRef<CTFontDescriptorRef> &&); // the font descriptor must have been normalized
   AutoReleasedCFRef<CTFontDescriptorRef> font_descriptor_;
   FT_Face ft_face_;
+  hb_font_t *hb_font_;
 };
 
 class FontManager {

@@ -42,13 +42,23 @@ FontFace::~FontFace() {
   if (ft_face_ != nullptr) {
     FT_Done_Face(ft_face_);
   }
+  if (hb_font_ != nullptr) {
+    hb_font_destroy(hb_font_);
+  }
 }
 
-FontFace::FontFace(AutoReleasedCFRef<CTFontDescriptorRef> &&font_descriptor) : font_descriptor_{font_descriptor}, ft_face_(nullptr) {
+FontFace::FontFace(AutoReleasedCFRef<CTFontDescriptorRef> &&font_descriptor) : font_descriptor_{font_descriptor}, ft_face_(nullptr), hb_font_(nullptr) {
 }
 
 AutoReleasedCFRef<CTFontRef> FontFace::CreateCTFont(float size) {
   return {CTFontCreateWithFontDescriptor(font_descriptor_.get(), size, nullptr)};
+}
+
+hb_font_t *FontFace::GetHBFont() {
+  if (hb_font_ == nullptr) {
+    hb_font_ = hb_ft_font_create(GetFTFace(), nullptr);
+  }
+  return hb_font_;
 }
 
 FT_Face FontFace::GetFTFace() {
