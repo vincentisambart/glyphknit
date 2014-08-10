@@ -38,15 +38,24 @@ namespace glyphknit {
 typedef uint16_t GlyphId;
 typedef CGPoint GlyphPosition;
 typedef ssize_t TextOffset;
-struct GlyphsLine {
-  std::vector<GlyphId> glyphs;
-  std::vector<GlyphPosition> positions;
-  std::vector<TextOffset> text_offsets;
+struct TypesetRun {
+  struct Glyph {
+    GlyphId id;
+    GlyphPosition position;
+    TextOffset offset;
+  };
+
+  // TODO: SizedFont sized_font;
+  std::vector<Glyph> glyphs;
+  // TODO: direction
+};
+struct TypesetLine {
+  std::vector<TypesetRun> runs;
   CGFloat ascent;
   CGFloat descent;
   CGFloat leading;
 };
-typedef std::vector<GlyphsLine> PositionedLines;
+typedef std::vector<TypesetLine> TypesetLines;
 
 struct TypesettingState;
 
@@ -54,7 +63,7 @@ class Typesetter {
  public:
   Typesetter();
   ~Typesetter();
-  void PositionGlyphs(TextBlock &, size_t width, PositionedLines &);
+  void PositionGlyphs(TextBlock &, size_t width, TypesetLines &);
   void DrawToContext(TextBlock &, size_t width, CGContextRef);
 
  private:

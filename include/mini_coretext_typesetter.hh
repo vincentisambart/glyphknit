@@ -32,7 +32,7 @@ namespace glyphknit {
 // only used to compare typesetting between Core Text and Glyphknit
 class MiniCoreTextTypesetter {
  public:
-  void PositionGlyphs(TextBlock &, size_t width, PositionedLines &);
+  void PositionGlyphs(TextBlock &, size_t width, TypesetLines &);
   void DrawToContext(TextBlock &, size_t width, CGContextRef);
 
  private:

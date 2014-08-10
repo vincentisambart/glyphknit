@@ -67,23 +67,29 @@ enum ComparisonFlags {
 const double kAllowedPositionDelta = 1.0 / 16384.0;
 
 // TODO: Compare fonts
-void ComparePositions(glyphknit::PositionedLines &lines_typesetted_by_coretext, glyphknit::PositionedLines &lines_typesetted_by_glyphknit, const char *description, int flags = ComparisonFlags::kDefault) {
-  ASSERT_EQ(lines_typesetted_by_coretext.size(), lines_typesetted_by_glyphknit.size()) << "The number of lines should be the same for " << description;
-  auto lines_count = lines_typesetted_by_glyphknit.size();
+void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphknit::TypesetLines &lines_typeset_by_glyphknit, const char *description, int flags = ComparisonFlags::kDefault) {
+  ASSERT_EQ(lines_typeset_by_coretext.size(), lines_typeset_by_glyphknit.size()) << "The number of lines should be the same for " << description;
+  auto lines_count = lines_typeset_by_glyphknit.size();
   for (size_t line_index = 0; line_index < lines_count; ++line_index) {
-    auto &line_typesetted_by_coretext = lines_typesetted_by_coretext[line_index];
-    auto &line_typesetted_by_glyphknit = lines_typesetted_by_glyphknit[line_index];
-    EXPECT_EQ(line_typesetted_by_coretext.glyphs.size(), line_typesetted_by_coretext.positions.size()) << "at line index " << line_index << " for " << description;
-    EXPECT_EQ(line_typesetted_by_glyphknit.glyphs.size(), line_typesetted_by_glyphknit.positions.size()) << "at line index " << line_index << " for " << description;
-    EXPECT_EQ(line_typesetted_by_glyphknit.glyphs.size(), line_typesetted_by_coretext.glyphs.size()) << "at line index " << line_index << " for " << description;
-    size_t glyphs_count = std::min(line_typesetted_by_glyphknit.glyphs.size(), line_typesetted_by_coretext.glyphs.size());
+    auto &coretext_line = lines_typeset_by_coretext[line_index];
+    auto &glyphknit_line = lines_typeset_by_glyphknit[line_index];
+    EXPECT_EQ(coretext_line.runs.size(), glyphknit_line.runs.size()) << "at line " << line_index << " for " << description;
+    size_t runs_count = std::min(coretext_line.runs.size(), glyphknit_line.runs.size());
+    for (size_t run_index = 0; run_index < runs_count; ++run_index) {
+      auto &coretext_run = coretext_line.runs[run_index];
+      auto &glyphknit_run = glyphknit_line.runs[run_index];
 
-    for (size_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
-      EXPECT_EQ(line_typesetted_by_coretext.glyphs[glyph_index], line_typesetted_by_glyphknit.glyphs[glyph_index]) << "at glyph index " << glyph_index << " at line index " << line_index << " for " << description;
-      EXPECT_EQ(line_typesetted_by_coretext.text_offsets[glyph_index], line_typesetted_by_glyphknit.text_offsets[glyph_index]) << "at glyph index " << glyph_index << " at line index " << line_index << " for " << description;
-      if (!(flags & ComparisonFlags::kIgnorePositions)) {
-        EXPECT_NEAR(line_typesetted_by_coretext.positions[glyph_index].x, line_typesetted_by_glyphknit.positions[glyph_index].x, kAllowedPositionDelta) << "at glyph index " << glyph_index << " at line index " << line_index << " for " << description;
-        EXPECT_NEAR(line_typesetted_by_coretext.positions[glyph_index].y, line_typesetted_by_glyphknit.positions[glyph_index].y, kAllowedPositionDelta) << "at glyph index " << glyph_index << " at line index " << line_index << " for " << description;
+      EXPECT_EQ(coretext_run.glyphs.size(), glyphknit_run.glyphs.size()) << "at run " << run_index << "at line " << line_index << " for " << description;
+      size_t glyphs_count = std::min(coretext_run.glyphs.size(), glyphknit_run.glyphs.size());
+      for (size_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
+        auto &coretext_glyph = coretext_run.glyphs[glyph_index];
+        auto &glyphknit_glyph = glyphknit_run.glyphs[glyph_index];
+        EXPECT_EQ(coretext_glyph.id, glyphknit_glyph.id) << "at glyph " << glyph_index << "at run " << run_index << " at line " << line_index << " for " << description;
+        EXPECT_EQ(coretext_glyph.offset, glyphknit_glyph.offset) << "at glyph " << glyph_index << "at run " << run_index << " at line " << line_index << " for " << description;
+        if (!(flags & ComparisonFlags::kIgnorePositions)) {
+          EXPECT_NEAR(coretext_glyph.position.x, glyphknit_glyph.position.x, kAllowedPositionDelta) << "at glyph " << glyph_index << "at run " << run_index << " at line " << line_index << " for " << description;
+          EXPECT_NEAR(coretext_glyph.position.y, glyphknit_glyph.position.y, kAllowedPositionDelta) << "at glyph " << glyph_index << "at run " << run_index << " at line " << line_index << " for " << description;
+        }
       }
     }
   }
@@ -99,8 +105,8 @@ void SimpleCompare(const char *text, const char *description, const char *font_n
   text_block.SetText(text);
 
   glyphknit::MiniCoreTextTypesetter ct_typesetter;
-  glyphknit::PositionedLines lines_typesetted_by_coretext;
-  ct_typesetter.PositionGlyphs(text_block, kImageWidth, lines_typesetted_by_coretext);
+  glyphknit::TypesetLines lines_typeset_by_coretext;
+  ct_typesetter.PositionGlyphs(text_block, kImageWidth, lines_typeset_by_coretext);
   if (flags & ComparisonFlags::kDrawToFiles) {
     DrawToFile("test-coretext.png", kImageWidth, kImageHeight, [&](CGContextRef context) {
       ct_typesetter.DrawToContext(text_block, kImageWidth, context);
@@ -108,15 +114,15 @@ void SimpleCompare(const char *text, const char *description, const char *font_n
   }
 
   glyphknit::Typesetter glyphknit_typesetter;
-  glyphknit::PositionedLines lines_typesetted_by_glyphknit;
-  glyphknit_typesetter.PositionGlyphs(text_block, kImageWidth, lines_typesetted_by_glyphknit);
+  glyphknit::TypesetLines lines_typeset_by_glyphknit;
+  glyphknit_typesetter.PositionGlyphs(text_block, kImageWidth, lines_typeset_by_glyphknit);
   if (flags & ComparisonFlags::kDrawToFiles) {
     DrawToFile("test-glyphknit.png", kImageWidth, kImageHeight, [&](CGContextRef context) {
       glyphknit_typesetter.DrawToContext(text_block, kImageWidth, context);
     });
   }
 
-  ComparePositions(lines_typesetted_by_coretext, lines_typesetted_by_glyphknit, description, flags);
+  ComparePositions(lines_typeset_by_coretext, lines_typeset_by_glyphknit, description, flags);
 }
 
 TEST(Typesetter, HandlesSimpleLTRText) {

@@ -81,20 +81,19 @@ void MiniCoreTextTypesetter::DrawToContext(TextBlock &text_block, const size_t w
   });
 }
 
-void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t width, PositionedLines &positioned_lines) {
-  Typeset(text_block, width, [&positioned_lines, &text_block](auto frame) {
+void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t width, TypesetLines &typeset_lines) {
+  Typeset(text_block, width, [&typeset_lines, &text_block](auto frame) {
     auto ct_lines = CTFrameGetLines(frame);
     auto lines_count = CFArrayGetCount(ct_lines);
-    positioned_lines.resize(lines_count);
+    typeset_lines.resize(lines_count);
     auto &text_content = text_block.text_content();
     for (ssize_t line_index = 0; line_index < lines_count; ++line_index) {
       auto ct_line = static_cast<CTLineRef>(CFArrayGetValueAtIndex(ct_lines, line_index));
 
-      auto &generated_line = positioned_lines[line_index];
+      auto &generated_line = typeset_lines[line_index];
 
       auto runs = CTLineGetGlyphRuns(ct_line);
       auto runs_count = CFArrayGetCount(runs);
-      ssize_t start_of_run = 0;
       for (ssize_t run_index = 0; run_index < runs_count; ++run_index) {
         auto run = static_cast<CTRunRef>(CFArrayGetValueAtIndex(runs, run_index));
         auto run_glyphs_count = CTRunGetGlyphCount(run);
@@ -102,17 +101,21 @@ void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t 
         auto positions = CTRunGetPositionsPtr(run);
         auto offsets = CTRunGetStringIndicesPtr(run);
 
+        TypesetRun generated_run{};
         for (ssize_t glyph_index = 0; glyph_index < run_glyphs_count; ++glyph_index) {
           auto cp = GetCodepoint(text_content.getBuffer(), text_content.length(), offsets[glyph_index]);
           if (IsCodepointToIgnoreForComparison(cp)) {
             continue;
           }
-          generated_line.glyphs.push_back(glyphs[glyph_index]);
-          generated_line.positions.push_back(positions[glyph_index]);
-          generated_line.text_offsets.push_back(offsets[glyph_index]);
+          generated_run.glyphs.push_back(TypesetRun::Glyph{
+            .id = glyphs[glyph_index],
+            .position = positions[glyph_index],
+            .offset = offsets[glyph_index],
+          });
         }
-
-        start_of_run += run_glyphs_count;
+        if (generated_run.glyphs.size() > 0) {
+          generated_line.runs.push_back(std::move(generated_run));
+        }
       }
     }
   });

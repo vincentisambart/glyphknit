@@ -89,7 +89,7 @@ struct TypesettingState {
   ssize_t  paragraph_start_offset;
   const uint16_t *paragraph_text;
   ssize_t paragraph_length;
-  PositionedLines &positioned_lines;
+  TypesetLines &typeset_lines;
   ssize_t width;
   ssize_t current_x_position;
   UBreakIterator *line_break_iterator;
@@ -145,7 +145,7 @@ ssize_t Typesetter::FindTextOffsetAfterGlyphCluster(const TypesettingState &stat
 }
 
 void Typesetter::StartNewLine(TypesettingState &state) {
-  state.positioned_lines.emplace_back();
+  state.typeset_lines.emplace_back();
   state.current_x_position = 0;
 }
 
@@ -321,31 +321,30 @@ void Typesetter::OutputShape(TypesettingState &state) {
   auto glyph_infos = hb_buffer_get_glyph_infos(state.hb_buffer, nullptr);
   auto glyph_pos = hb_buffer_get_glyph_positions(state.hb_buffer, nullptr);
 
-  auto &last_line = state.positioned_lines[state.positioned_lines.size()-1];
-  auto &glyphs = last_line.glyphs;
-  auto &positions = last_line.positions;
-  auto &offsets = last_line.text_offsets;
-  glyphs.reserve(positions.size() + glyphs_count);
-  positions.reserve(positions.size() + glyphs_count);
+  auto &last_line = state.typeset_lines[state.typeset_lines.size()-1];
+  last_line.runs.emplace_back();
+  auto &last_run = last_line.runs[last_line.runs.size()-1];
+  auto &glyphs = last_run.glyphs;
+  glyphs.resize(glyphs_count);
 
   const auto upem = hb_face_get_upem(hb_font_get_face(state.font));
 
   ssize_t base_x = state.current_x_position, base_y = 0;
   for (unsigned int glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
-    glyphs.push_back(uint16_t(glyph_infos[glyph_index].codepoint));
-    GlyphPosition position = {
+    auto &glyph = glyphs[glyph_index];
+    glyph.id = uint16_t(glyph_infos[glyph_index].codepoint);
+    glyph.position = {
       .x = double(base_x + glyph_pos[glyph_index].x_offset) * state.font_size / upem,
       .y = double(base_y + glyph_pos[glyph_index].y_offset) * state.font_size / upem,
     };
-    positions.push_back(position);
-    offsets.push_back(glyph_infos[glyph_index].cluster + state.paragraph_start_offset);
+    glyph.offset = glyph_infos[glyph_index].cluster + state.paragraph_start_offset;
     base_x += glyph_pos[glyph_index].x_advance;
     base_y += glyph_pos[glyph_index].y_advance;
   }
   state.current_x_position = base_x;
 }
 
-void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, PositionedLines &positioned_lines) {
+void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLines &typeset_lines) {
   auto default_font = text_block.default_sized_font();
 
   auto ft_face = default_font.font_face()->GetFTFace();
@@ -364,13 +363,13 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, PositionedL
   const icu::UnicodeString &text_content = text_block.text_content();
   auto text_length = text_content.length();
   const uint16_t *text = text_content.getBuffer();
-  positioned_lines.clear();
+  typeset_lines.clear();
 
   TypesettingState state = {
     .hb_buffer = hb_buffer,
     .font = hb_font,
     .font_size = font_size,
-    .positioned_lines = positioned_lines,
+    .typeset_lines = typeset_lines,
     .width = width_in_font_units,
     .line_break_iterator = line_break_iterator_,
     .grapheme_cluster_iterator = grapheme_cluster_iterator_,
@@ -410,22 +409,33 @@ void Typesetter::DrawToContext(TextBlock &text_block, const size_t width, CGCont
   auto default_font = text_block.default_sized_font();
   auto default_ct_font = default_font.CopyCTFont();
 
-  PositionedLines positioned_lines;
-  PositionGlyphs(text_block, width, positioned_lines);
+  TypesetLines typeset_lines;
+  PositionGlyphs(text_block, width, typeset_lines);
 
   CGContextSetTextMatrix(context, CGAffineTransformIdentity);
   CGFloat total_height = 0;
-  auto last_line = positioned_lines.end();
-  for (auto line_it = positioned_lines.begin(); line_it != last_line; ++line_it) {
+  auto last_line = typeset_lines.end();
+  for (auto line_it = typeset_lines.begin(); line_it != last_line; ++line_it) {
     total_height += CoreTextLineHeight(default_ct_font.get());
   }
   total_height += std::round(CTFontGetDescent(default_ct_font.get())) + 0.5;
   CGContextTranslateCTM(context, 0, total_height);
 
-  for (auto line_it = positioned_lines.begin(); line_it != last_line; ++line_it) {
-    const auto &line = *line_it;
+  std::vector<GlyphId> glyph_ids;
+  std::vector<GlyphPosition> glyph_positions;
+  for (auto &line : typeset_lines) {
     CGContextTranslateCTM(context, 0, -CoreTextLineHeight(default_ct_font.get()));
-    CTFontDrawGlyphs(default_ct_font.get(), line.glyphs.data(), line.positions.data(), line.glyphs.size(), context);
+    for (auto &run : line.runs) {
+      glyph_ids.resize(0);
+      glyph_positions.resize(0);
+      glyph_ids.reserve(run.glyphs.size());
+      glyph_positions.reserve(run.glyphs.size());
+      for (auto &glyph : run.glyphs) {
+        glyph_ids.push_back(glyph.id);
+        glyph_positions.push_back(glyph.position);
+      }
+      CTFontDrawGlyphs(default_ct_font.get(), glyph_ids.data(), glyph_positions.data(), run.glyphs.size(), context);
+    }
   }
   // TODO: use the ascent/descent/leading from the line, not from the font
 }
