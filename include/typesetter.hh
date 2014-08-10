@@ -45,7 +45,8 @@ struct TypesetRun {
     TextOffset offset;
   };
 
-  // TODO: SizedFont sized_font;
+  std::shared_ptr<FontFace> font_face;
+  float font_size;
   std::vector<Glyph> glyphs;
   // TODO: direction
 };

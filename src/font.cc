@@ -123,6 +123,12 @@ std::shared_ptr<FontFace> FontManager::LoadFontFromPostScriptName(const char *na
   return std::shared_ptr<FontFace>{new FontFace(std::move(font_descriptor))};
 }
 
+std::shared_ptr<FontFace> FontManager::CreateFromCTFont(CTFontRef ct_font) {
+  auto font_descriptor = MakeAutoReleasedCFRef(CTFontCopyFontDescriptor(ct_font));
+  // can't use std::make_shared because FontFace's constructor is private
+  return std::shared_ptr<FontFace>{new FontFace(std::move(font_descriptor))};
+}
+
 FontManager *FontManager::instance() {
   static FontManager *instance = nullptr;
   if (instance == nullptr) {

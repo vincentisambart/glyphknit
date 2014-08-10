@@ -55,6 +55,7 @@ class FontManager {
  public:
   FT_Library ft_library() const { return ft_library_; }
   static std::shared_ptr<FontFace> LoadFontFromPostScriptName(const char *name);
+  static std::shared_ptr<FontFace> CreateFromCTFont(CTFontRef);
   //static std::shared_ptr<FontFace> LoadFontFromLocalFile(const char *path);
   static FontManager *instance();
 

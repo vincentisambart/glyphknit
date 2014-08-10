@@ -102,7 +102,12 @@ void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t 
         auto positions = CTRunGetPositionsPtr(run);
         auto offsets = CTRunGetStringIndicesPtr(run);
 
+        auto attributes = CTRunGetAttributes(run);
+        CTFontRef font = reinterpret_cast<CTFontRef>(CFDictionaryGetValue(attributes, kCTFontAttributeName));
+
         TypesetRun generated_run{};
+        generated_run.font_size = float(CTFontGetSize(font));
+        generated_run.font_face = FontManager::CreateFromCTFont(font);
         for (ssize_t glyph_index = 0; glyph_index < run_glyphs_count; ++glyph_index) {
           auto cp = GetCodepoint(text_content.getBuffer(), text_content.length(), offsets[glyph_index]);
           if (IsCodepointToIgnoreForComparison(cp)) {

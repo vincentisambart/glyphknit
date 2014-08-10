@@ -84,8 +84,9 @@ static ssize_t CountGraphemeClusters(UBreakIterator *grapheme_cluster_iterator, 
 
 struct TypesettingState {
   hb_buffer_t *hb_buffer;
-  hb_font_t *font;
-  CGFloat font_size;
+  hb_font_t *hb_font;
+  std::shared_ptr<FontFace> font_face;
+  float font_size;
   ssize_t  paragraph_start_offset;
   const uint16_t *paragraph_text;
   ssize_t paragraph_length;
@@ -100,7 +101,7 @@ void Typesetter::Shape(TypesettingState &state, ssize_t start_offset, ssize_t en
   hb_buffer_clear_contents(state.hb_buffer);
   hb_buffer_add_utf16(state.hb_buffer, state.paragraph_text, (int)state.paragraph_length, (unsigned int)start_offset, (int)(end_offset-start_offset));
   hb_buffer_set_direction(state.hb_buffer, HB_DIRECTION_LTR);
-  hb_shape(state.font, state.hb_buffer, nullptr, 0);
+  hb_shape(state.hb_font, state.hb_buffer, nullptr, 0);
 }
 
 ssize_t Typesetter::CountGlyphsThatFit(TypesettingState &state, ssize_t width) {
@@ -327,7 +328,10 @@ void Typesetter::OutputShape(TypesettingState &state) {
   auto &glyphs = last_run.glyphs;
   glyphs.resize(glyphs_count);
 
-  const auto upem = hb_face_get_upem(hb_font_get_face(state.font));
+  last_run.font_size = state.font_size;
+  last_run.font_face = state.font_face;
+
+  const auto upem = hb_face_get_upem(hb_font_get_face(state.hb_font));
 
   ssize_t base_x = state.current_x_position, base_y = 0;
   for (unsigned int glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
@@ -366,7 +370,8 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
 
   TypesettingState state = {
     .hb_buffer = hb_buffer,
-    .font = hb_font,
+    .hb_font = hb_font,
+    .font_face = font_face,
     .font_size = font_size,
     .typeset_lines = typeset_lines,
     .width = width_in_font_units,
