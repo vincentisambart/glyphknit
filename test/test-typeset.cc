@@ -79,19 +79,19 @@ void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphk
       auto &coretext_run = coretext_line.runs[run_index];
       auto &glyphknit_run = glyphknit_line.runs[run_index];
 
-      EXPECT_EQ(*coretext_run.font_face, *glyphknit_run.font_face) << "at run " << run_index << "at line " << line_index << " for " << description;
-      EXPECT_NEAR(coretext_run.font_size, glyphknit_run.font_size, kAllowedPositionDelta) << "at run " << run_index << "at line " << line_index << " for " << description;
-      EXPECT_EQ(coretext_run.glyphs.size(), glyphknit_run.glyphs.size()) << "at run " << run_index << "at line " << line_index << " for " << description;
+      EXPECT_EQ(*coretext_run.font_face, *glyphknit_run.font_face) << "at run " << run_index << " at line " << line_index << " for " << description;
+      EXPECT_NEAR(coretext_run.font_size, glyphknit_run.font_size, kAllowedPositionDelta) << "at run " << run_index << " at line " << line_index << " for " << description;
+      EXPECT_EQ(coretext_run.glyphs.size(), glyphknit_run.glyphs.size()) << "at run " << run_index << " at line " << line_index << " for " << description;
 
       size_t glyphs_count = std::min(coretext_run.glyphs.size(), glyphknit_run.glyphs.size());
       for (size_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
         auto &coretext_glyph = coretext_run.glyphs[glyph_index];
         auto &glyphknit_glyph = glyphknit_run.glyphs[glyph_index];
-        EXPECT_EQ(coretext_glyph.id, glyphknit_glyph.id) << "at glyph " << glyph_index << "at run " << run_index << " at line " << line_index << " for " << description;
-        EXPECT_EQ(coretext_glyph.offset, glyphknit_glyph.offset) << "at glyph " << glyph_index << "at run " << run_index << " at line " << line_index << " for " << description;
+        EXPECT_EQ(coretext_glyph.id, glyphknit_glyph.id) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
+        EXPECT_EQ(coretext_glyph.offset, glyphknit_glyph.offset) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
         if (!(flags & ComparisonFlags::kIgnorePositions)) {
-          EXPECT_NEAR(coretext_glyph.position.x, glyphknit_glyph.position.x, kAllowedPositionDelta) << "at glyph " << glyph_index << "at run " << run_index << " at line " << line_index << " for " << description;
-          EXPECT_NEAR(coretext_glyph.position.y, glyphknit_glyph.position.y, kAllowedPositionDelta) << "at glyph " << glyph_index << "at run " << run_index << " at line " << line_index << " for " << description;
+          EXPECT_NEAR(coretext_glyph.position.x, glyphknit_glyph.position.x, kAllowedPositionDelta) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
+          EXPECT_NEAR(coretext_glyph.position.y, glyphknit_glyph.position.y, kAllowedPositionDelta) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
         }
       }
     }
