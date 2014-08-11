@@ -26,16 +26,12 @@
 
 namespace glyphknit {
 
-void TextBlock::SetText(const icu::UnicodeString &text) {
-  string_.setTo(text);
-}
-
 void TextBlock::SetText(const uint16_t *text, const size_t length) {
   string_.setTo(reinterpret_cast<const UChar *>(text), (int32_t)length);
 }
 
 void TextBlock::SetText(const char *text, const size_t length) {
-  SetText(icu::UnicodeString::fromUTF8(icu::StringPiece{text, (int32_t)length}));
+  string_.setTo(icu::UnicodeString::fromUTF8(icu::StringPiece{text, (int32_t)length}));
 }
 
 void TextBlock::SetText(const char *text) {

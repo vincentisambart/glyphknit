@@ -360,9 +360,8 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
     hb_buffer = nullptr;
   });
 
-  const icu::UnicodeString &text_content = text_block.text_content();
-  auto text_length = text_content.length();
-  const uint16_t *text = text_content.getBuffer();
+  auto text_content = text_block.text_content();
+  auto text_length = text_block.text_length();
   typeset_lines.clear();
 
   TypesettingState state = {
@@ -378,21 +377,21 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
   ssize_t offset = 0, paragraph_start_offset = 0;
   while (offset < text_length) {
     auto codepoint_start_offset = offset;
-    auto c = ConsumeCodepoint(text, text_length, offset);
+    auto c = ConsumeCodepoint(text_content, text_length, offset);
     if (IsParagraphSeparator(c)) {
       state.paragraph_start_offset = paragraph_start_offset;
-      state.paragraph_text = text+paragraph_start_offset;
+      state.paragraph_text = text_content+paragraph_start_offset;
       state.paragraph_length = codepoint_start_offset-paragraph_start_offset;
       state.current_x_position = 0;
       TypesetParagraph(state);
-      if (offset < text_length && c == '\r' && text[offset] == '\n') {
+      if (offset < text_length && c == '\r' && text_content[offset] == '\n') {
         ++offset;
       }
       paragraph_start_offset = offset;
     }
   }
   state.paragraph_start_offset = paragraph_start_offset;
-  state.paragraph_text = text+paragraph_start_offset;
+  state.paragraph_text = text_content+paragraph_start_offset;
   state.paragraph_length = text_length-paragraph_start_offset;
   state.current_x_position = 0;
   TypesetParagraph(state);

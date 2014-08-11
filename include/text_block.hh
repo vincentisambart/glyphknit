@@ -39,9 +39,9 @@ class TextBlock {
   void SetText(const uint16_t *, size_t length);
   void SetText(const char *, size_t length);
   void SetText(const char *);
-  void SetText(const icu::UnicodeString &);
 
-  const icu::UnicodeString &text_content() { return string_; }
+  const uint16_t *text_content() { return string_.getBuffer(); }
+  ssize_t text_length() { return string_.length(); }
 
   const std::shared_ptr<FontFace> &default_font_face() { return default_font_face_; }
   float default_font_size() const { return default_font_size_; }

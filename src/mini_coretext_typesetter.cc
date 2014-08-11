@@ -58,8 +58,7 @@ void MiniCoreTextTypesetter::Typeset(TextBlock &text_block, const size_t width, 
 
   auto attributes = MakeAutoReleasedCFRef(CFDictionaryCreate(kCFAllocatorDefault, keys, values, sizeof(keys) / sizeof(keys[0]), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
 
-  const icu::UnicodeString &text_content = text_block.text_content();
-  auto string = MakeAutoReleasedCFRef(CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault, text_content.getBuffer(), text_content.length(), kCFAllocatorNull));
+  auto string = MakeAutoReleasedCFRef(CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault, text_block.text_content(), text_block.text_length(), kCFAllocatorNull));
   auto attributed_string = MakeAutoReleasedCFRef(CFAttributedStringCreate(kCFAllocatorDefault, string.get(), attributes.get()));
   auto framesetter = MakeAutoReleasedCFRef(CTFramesetterCreateWithAttributedString(attributed_string.get()));
 
@@ -87,7 +86,8 @@ void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t 
     auto ct_lines = CTFrameGetLines(frame);
     auto lines_count = CFArrayGetCount(ct_lines);
     typeset_lines.resize(lines_count);
-    auto &text_content = text_block.text_content();
+    auto text_content = text_block.text_content();
+    auto text_length = text_block.text_length();
     for (ssize_t line_index = 0; line_index < lines_count; ++line_index) {
       auto ct_line = static_cast<CTLineRef>(CFArrayGetValueAtIndex(ct_lines, line_index));
 
@@ -109,7 +109,7 @@ void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t 
         generated_run.font_size = float(CTFontGetSize(font));
         generated_run.font_face = FontManager::CreateFromCTFont(font);
         for (ssize_t glyph_index = 0; glyph_index < run_glyphs_count; ++glyph_index) {
-          auto cp = GetCodepoint(text_content.getBuffer(), text_content.length(), offsets[glyph_index]);
+          auto cp = GetCodepoint(text_content, text_length, offsets[glyph_index]);
           if (IsCodepointToIgnoreForComparison(cp)) {
             continue;
           }
