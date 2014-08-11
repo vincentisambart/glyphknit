@@ -103,7 +103,7 @@ void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t 
         auto offsets = CTRunGetStringIndicesPtr(run);
 
         auto attributes = CTRunGetAttributes(run);
-        CTFontRef font = reinterpret_cast<CTFontRef>(CFDictionaryGetValue(attributes, kCTFontAttributeName));
+        CTFontRef font = static_cast<CTFontRef>(CFDictionaryGetValue(attributes, kCTFontAttributeName));
 
         TypesetRun generated_run{};
         generated_run.font_size = float(CTFontGetSize(font));
