@@ -32,16 +32,17 @@ void TextBlock::SetText(const uint16_t *utf16_text, const size_t utf16_length) {
   std::copy(utf16_text, utf16_text+utf16_length, text_.begin());
 }
 
+const uint32_t kReplacementCharacter = 0xfffd;
 void TextBlock::SetText(const char *utf8_text, const size_t utf8_length) {
-  text_.resize(utf8_length);  // the UTF-16 string can't be longer than the UTF-8 string
+  text_.resize(utf8_length);  // a UTF-16 string is always smaller than its UTF-8 equivalent (in code units of course, not necessarily in bytes)
   int32_t utf16_length;
   UErrorCode errorCode = U_ZERO_ERROR;
-  u_strFromUTF8WithSub(text_.data(), int32_t(text_.capacity()), &utf16_length, utf8_text, int32_t(utf8_length), 0xfffd, NULL, &errorCode);
+  u_strFromUTF8WithSub(text_.data(), int32_t(text_.capacity()), &utf16_length, utf8_text, int32_t(utf8_length), kReplacementCharacter, NULL, &errorCode);
   text_.resize(utf16_length);
 }
 
-void TextBlock::SetText(const char *text) {
-  SetText(text, std::strlen(text));
+void TextBlock::SetText(const char *utf8_text) {
+  SetText(utf8_text, std::strlen(utf8_text));
 }
 
 TextBlock::~TextBlock() {
