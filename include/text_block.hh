@@ -25,7 +25,7 @@
 #ifndef GLYPHKNIT_TEXT_BLOCK_H_
 #define GLYPHKNIT_TEXT_BLOCK_H_
 
-#include <unicode/unistr.h>
+#include <vector>
 #include "font.hh"
 #include "language.hh"
 
@@ -41,8 +41,8 @@ class TextBlock {
   void SetText(const char *, size_t length);
   void SetText(const char *);
 
-  const uint16_t *text_content() { return string_.getBuffer(); }
-  ssize_t text_length() { return string_.length(); }
+  const uint16_t *text_content() { return text_.data(); }
+  ssize_t text_length() { return text_.size(); }
 
   const std::shared_ptr<FontFace> &default_font_face() { return default_font_face_; }
   float default_font_size() const { return default_font_size_; }
@@ -58,7 +58,7 @@ class TextBlock {
   }
 
  private:
-  icu::UnicodeString string_;  // TODO: use std:vector<uint16_t>
+  std::vector<uint16_t> text_;
   std::shared_ptr<FontFace> default_font_face_;
   float default_font_size_;
 };

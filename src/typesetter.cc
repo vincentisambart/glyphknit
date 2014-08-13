@@ -321,9 +321,9 @@ void Typesetter::OutputShape(TypesettingState &state) {
   auto glyph_infos = hb_buffer_get_glyph_infos(state.hb_buffer, nullptr);
   auto glyph_pos = hb_buffer_get_glyph_positions(state.hb_buffer, nullptr);
 
-  auto &last_line = state.typeset_lines[state.typeset_lines.size()-1];
+  auto &last_line = state.typeset_lines.back();
   last_line.runs.emplace_back();
-  auto &last_run = last_line.runs[last_line.runs.size()-1];
+  auto &last_run = last_line.runs.back();
   auto &glyphs = last_run.glyphs;
   glyphs.resize(glyphs_count);
 

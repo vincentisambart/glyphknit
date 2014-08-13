@@ -23,15 +23,19 @@
  */
 
 #include "text_block.hh"
+#include <unicode/unistr.h>
 
 namespace glyphknit {
 
 void TextBlock::SetText(const uint16_t *text, const size_t length) {
-  string_.setTo(reinterpret_cast<const UChar *>(text), (int32_t)length);
+  text_.clear();
+  text_.reserve(length);
+  text_.insert(text_.begin(), text, text+length);
 }
 
 void TextBlock::SetText(const char *text, const size_t length) {
-  string_.setTo(icu::UnicodeString::fromUTF8(icu::StringPiece{text, (int32_t)length}));
+  auto str = icu::UnicodeString::fromUTF8(icu::StringPiece{text, (int32_t)length});
+  SetText(str.getBuffer(), str.length());
 }
 
 void TextBlock::SetText(const char *text) {
