@@ -25,7 +25,8 @@
 #ifndef GLYPHKNIT_TAG_H_
 #define GLYPHKNIT_TAG_H_
 
-#include "typesetter.hh"
+#include <cstring>
+#include <cstdlib>
 
 namespace glyphknit {
 
@@ -44,7 +45,7 @@ Tag MakeTag(char c1, char c2 = ' ', char c3 = ' ', char c4 = ' ') {
 // The definition of MakeTag below is mostly for using in automatic tests
 inline
 Tag MakeTag(const char *str) {
-  switch (strlen(str)) {
+  switch (std::strlen(str)) {
     case 1:
       return MakeTag(str[0]);
     case 2:
@@ -54,7 +55,7 @@ Tag MakeTag(const char *str) {
     case 4:
       return MakeTag(str[0], str[1], str[2], str[3]);
     default:
-      abort();
+      std::abort();
   }
 }
 

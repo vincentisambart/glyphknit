@@ -118,6 +118,9 @@ FT_Face FontFace::GetFTFace() {
 }
 
 bool FontFace::operator ==(const FontFace &compared_to) const {
+  if (this == &compared_to) {
+    return true;
+  }
   auto font_name = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(font_descriptor_.get(), kCTFontNameAttribute));
   auto font_name_to_compare_to = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(compared_to.font_descriptor_.get(), kCTFontNameAttribute));
   return CFEqual(font_name.get(), font_name_to_compare_to.get());

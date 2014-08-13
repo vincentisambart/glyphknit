@@ -27,6 +27,7 @@
 
 #include <unicode/unistr.h>
 #include "font.hh"
+#include "language.hh"
 
 namespace glyphknit {
 
@@ -57,7 +58,7 @@ class TextBlock {
   }
 
  private:
-  icu::UnicodeString string_;
+  icu::UnicodeString string_;  // TODO: use std:vector<uint16_t>
   std::shared_ptr<FontFace> default_font_face_;
   float default_font_size_;
 };

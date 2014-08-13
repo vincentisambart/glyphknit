@@ -39,6 +39,8 @@ struct Language {
   }
 };
 
+static const Language kLanguageUnknown = {.language_code = kTagUnknown, .opentype_tag = kOpenTypeTagDefaultLanguage};
+
 bool IsScriptUsedForLanguage(UScriptCode script, Language language);
 Language GetPredominantLanguageForScript(UScriptCode script);
 Language FindLanguageCodeAndOpenTypeLanguageTag(const char *language, ssize_t length = -1);

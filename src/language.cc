@@ -26,6 +26,7 @@
 
 #include <cstdio>
 #include <iostream>  // for debugging
+#include <vector>
 
 #include "autorelease.hh"
 #include "language.hh"
@@ -62,7 +63,7 @@ bool IsScriptValid(UScriptCode script) {
 
 Language GetPredominantLanguageForScript(UScriptCode script) {
   if (!IsScriptValid(script)) {
-    return Language{.language_code = kTagUnknown, .opentype_tag = kOpenTypeTagDefaultLanguage};
+    return kLanguageUnknown;
   }
   return kLikelyLanguageForScripts[script];
 }
@@ -84,7 +85,7 @@ Language FindLanguageCodeAndOpenTypeLanguageTag(const char *language, ssize_t le
   }
   else {
     // country codes must be 2 or 3 letters long
-    return {.language_code = kTagUnknown, .opentype_tag = kOpenTypeTagDefaultLanguage};
+    return kLanguageUnknown;
   }
 
   auto end = std::end(kOpenTypeTagPerLanguage);
