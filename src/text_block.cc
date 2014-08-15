@@ -69,9 +69,8 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
   // std::list iterators are not invalidated if the current element is not deleted so we can modify the elements without too much of a problem
   auto attributes_runs_end = attributes_runs_.end();
   decltype(attributes_runs_)::iterator previous_run;
-  for (auto current_run = attributes_runs_.begin(); current_run != attributes_runs_end; ++current_run) {
+  for (auto current_run = attributes_runs_.begin(); current_run != attributes_runs_end; previous_run = current_run, ++current_run) {
     if (start >= current_run->end) {
-      previous_run = current_run;
       continue;
     }
 
@@ -80,7 +79,6 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
       current_run->start = previous_run->start;
       attributes_runs_.erase(previous_run, current_run);
     }
-    previous_run = current_run;
 
     if (end <= current_run->start) {
       break;
