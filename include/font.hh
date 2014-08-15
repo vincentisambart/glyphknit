@@ -77,8 +77,9 @@ class FontManager {
   FT_Library ft_library_;
 };
 
+static const float kFontComparisonDelta = 0.0625f;
 inline bool IsFontSizeSimilar(float a, float b) {
-  return std::abs(a - b) < 0.0625f;
+  return std::abs(a - b) < kFontComparisonDelta;
 }
 
 }

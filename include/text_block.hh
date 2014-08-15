@@ -59,7 +59,7 @@ struct TextAttributesRun {
 
 class TextBlock {
  public:
-  // TODO: have a default font it the user does not specify one
+  // TODO: have a default font if the user does not specify one
   TextBlock(std::shared_ptr<FontFace> default_font_face, float default_font_size) {
     AllTextAttributes base_attributes{default_font_face, default_font_size};
     attributes_runs_.push_front(TextAttributesRun{
