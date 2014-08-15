@@ -26,6 +26,7 @@
 
 #include <unicode/ustring.h>
 #include <cassert>
+#include <functional>
 
 namespace glyphknit {
 
@@ -57,7 +58,19 @@ TextBlock::~TextBlock() {
 }
 
 void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
-  // TODO: Write setters for the other attributes, and tests
+  SetAttribute(&AllTextAttributes::font_size, font_size, IsFontSizeSimilar, start, end);
+}
+
+void TextBlock::SetFontFace(std::shared_ptr<FontFace> font_face, ssize_t start, ssize_t end) {
+  SetAttribute(&AllTextAttributes::font_face, font_face, [](std::shared_ptr<FontFace> a, std::shared_ptr<FontFace> b) { return *a == *b; }, start, end);
+}
+
+void TextBlock::SetLanguage(Language language, ssize_t start, ssize_t end) {
+  SetAttribute(&AllTextAttributes::language, language, std::equal_to<Language>{}, start, end);
+}
+
+template <typename T, typename Comparator>
+void TextBlock::SetAttribute(T AllTextAttributes::*attribute, const T &value, Comparator is_similar, ssize_t start, ssize_t end) {
   assert(start >= 0);
   if (end < 0 || end > ssize_t(text_.size())) {
     end = text_.size();
@@ -75,19 +88,19 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
     if (end <= current_run->start) {
       break;
     }
-    if (IsFontSizeSimilar(current_run->attributes.font_size, font_size)) {
+    if (is_similar(current_run->attributes.*attribute, value)) {
       continue;
     }
 
     if (start <= current_run->start && end >= current_run->end) {
-      current_run->attributes.font_size = font_size;
+      current_run->attributes.*attribute = value;
     }
     else if (start <= current_run->start) {
       auto new_run_before = attributes_runs_.emplace(current_run);
       new_run_before->start = current_run->start;
       new_run_before->end = end;
       new_run_before->attributes = current_run->attributes;
-      new_run_before->attributes.font_size = font_size;
+      new_run_before->attributes.*attribute = value;
 
       current_run->start = end;
     }
@@ -98,7 +111,7 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
       new_run_before->attributes = current_run->attributes;
 
       current_run->start = start;
-      current_run->attributes.font_size = font_size;
+      current_run->attributes.*attribute = value;
     }
     else {
       auto new_run_before = attributes_runs_.emplace(current_run);
@@ -110,7 +123,7 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
       new_run_before->start = start;
       new_run_before->end = end;
       new_run_before->attributes = current_run->attributes;
-      new_run_before->attributes.font_size = font_size;
+      new_run_before->attributes.*attribute = value;
 
       current_run->start = end;
     }

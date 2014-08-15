@@ -79,9 +79,14 @@ class TextBlock {
   const std::list<TextAttributesRun> &attributes_runs() const { return attributes_runs_; }
 
   void SetFontSize(float font_size, ssize_t start = 0, ssize_t end = -1);
+  void SetFontFace(std::shared_ptr<FontFace> font_face, ssize_t start = 0, ssize_t end = -1);
+  void SetLanguage(Language language, ssize_t start = 0, ssize_t end = -1);
 
  private:
   void MergeAdjacentRunsWithSameAttributes();
+
+  template <typename T, typename Comparator>
+  void SetAttribute(T AllTextAttributes::*attribute, const T &value, Comparator f, ssize_t start, ssize_t end);
 
   std::vector<uint16_t> text_;
   std::list<TextAttributesRun> attributes_runs_;

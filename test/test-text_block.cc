@@ -181,3 +181,5 @@ TEST(TextBlock, SetFontSize) {
     ASSERT_EQ(*font_face, *current_run->attributes.font_face);
   }
 }
+
+// TODO: add tests for SetFontFace and SetLanguage
