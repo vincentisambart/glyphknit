@@ -348,10 +348,10 @@ void Typesetter::OutputShape(TypesettingState &state) {
 }
 
 void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLines &typeset_lines) {
-  const auto &font_face = text_block.default_font_face();
+  const auto &font_face = text_block.attributes_runs().front().attributes.font_face;  // TODO: iterate over runs
   auto ft_face = font_face->GetFTFace();
 
-  auto font_size = text_block.default_font_size();
+  auto font_size = text_block.attributes_runs().front().attributes.font_size;  // TODO: iterate over runs
   const ssize_t width_in_font_units = size_t(double(width) * ft_face->units_per_EM / font_size);
 
   auto hb_buffer = hb_buffer_create();
@@ -405,12 +405,13 @@ static CGFloat CoreTextLineHeight(CTFontRef font) {
 }
 
 void Typesetter::DrawToContext(TextBlock &text_block, const size_t width, CGContextRef context) {
-  const auto &default_font_face = text_block.default_font_face();
-  auto default_font_size = text_block.default_font_size();
-  auto default_ct_font = default_font_face->CreateCTFont(default_font_size);
-
   TypesetLines typeset_lines;
   PositionGlyphs(text_block, width, typeset_lines);
+
+  // TODO: use line heights from lines and/or runs
+  const auto &default_font_face = text_block.attributes_runs().front().attributes.font_face;
+  auto default_font_size = text_block.attributes_runs().front().attributes.font_size;
+  auto default_ct_font = default_font_face->CreateCTFont(default_font_size);
 
   CGContextSetTextMatrix(context, CGAffineTransformIdentity);
   CGFloat total_height = 0;

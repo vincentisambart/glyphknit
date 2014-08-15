@@ -49,17 +49,16 @@ bool IsCodepointToIgnoreForComparison(UChar32 c) {
 
 template <typename Callable>
 void MiniCoreTextTypesetter::Typeset(TextBlock &text_block, const size_t width, Callable process_frame) {
-  const auto &default_font_face = text_block.default_font_face();
-  auto default_font_size = text_block.default_font_size();
-  auto default_ct_font = default_font_face->CreateCTFont(default_font_size);
-
-  const void *keys[] = { kCTFontAttributeName };
-  const void *values[] = { default_ct_font.get() };
-
-  auto attributes = MakeAutoReleasedCFRef(CFDictionaryCreate(kCFAllocatorDefault, keys, values, sizeof(keys) / sizeof(keys[0]), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
-
   auto string = MakeAutoReleasedCFRef(CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault, text_block.text_content(), text_block.text_length(), kCFAllocatorNull));
-  auto attributed_string = MakeAutoReleasedCFRef(CFAttributedStringCreate(kCFAllocatorDefault, string.get(), attributes.get()));
+  auto attributed_string = MakeAutoReleasedCFRef(CFAttributedStringCreateMutable(kCFAllocatorDefault, 0));
+  CFAttributedStringReplaceString(attributed_string.get(), CFRangeMake(0, 0), string.get());
+  CFAttributedStringBeginEditing(attributed_string.get());
+  for (const auto &run : text_block.attributes_runs()) {
+    auto ct_font = run.attributes.font_face->CreateCTFont(run.attributes.font_size);
+    CFAttributedStringSetAttribute(attributed_string.get(), CFRangeMake(run.start, run.end-run.start), kCTFontAttributeName, ct_font.get());
+  }
+  CFAttributedStringEndEditing(attributed_string.get());
+
   auto framesetter = MakeAutoReleasedCFRef(CTFramesetterCreateWithAttributedString(attributed_string.get()));
 
   CFRange fit_range;

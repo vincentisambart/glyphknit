@@ -25,8 +25,11 @@
 #ifndef GLYPHKNIT_FONT_H_
 #define GLYPHKNIT_FONT_H_
 
-#include <CoreText/CoreText.h>
+#include "autorelease.hh"
+
 #include <memory>
+#include <cmath>
+#include <CoreText/CoreText.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
@@ -34,8 +37,6 @@
 #pragma clang diagnostic ignored "-Wshift-sign-overflow"
 #include <hb-ft.h>
 #pragma clang diagnostic pop
-
-#include "autorelease.hh"
 
 namespace glyphknit {
 
@@ -75,6 +76,10 @@ class FontManager {
   ~FontManager();
   FT_Library ft_library_;
 };
+
+inline bool IsFontSizeSimilar(float a, float b) {
+  return std::abs(a - b) < 0.0625f;
+}
 
 }
 

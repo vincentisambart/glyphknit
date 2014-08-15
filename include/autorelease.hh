@@ -25,6 +25,8 @@
 #ifndef GLYPHKNIT_AUTORELEASE_H_
 #define GLYPHKNIT_AUTORELEASE_H_
 
+#include <CoreFoundation/CoreFoundation.h>
+
 namespace glyphknit {
 
 template <typename RefType>

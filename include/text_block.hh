@@ -25,16 +25,49 @@
 #ifndef GLYPHKNIT_TEXT_BLOCK_H_
 #define GLYPHKNIT_TEXT_BLOCK_H_
 
-#include <vector>
 #include "font.hh"
 #include "language.hh"
 
+#include <vector>
+#include <list>
+#include <cmath>
+
 namespace glyphknit {
+
+static const float kDefaultFontSize = 12;
+
+struct AllTextAttributes {
+  std::shared_ptr<FontFace> font_face;
+  float font_size;
+  Language language;
+
+  AllTextAttributes(const std::shared_ptr<FontFace> &face, float size = kDefaultFontSize, Language lang = kLanguageUnknown) :
+    font_face(face), font_size(size), language(lang) {}
+  AllTextAttributes() : font_face(nullptr), font_size(0), language(kLanguageUnknown) {}
+
+  bool operator ==(const AllTextAttributes &compared_to) const {
+    return this->language == compared_to.language
+      && IsFontSizeSimilar(this->font_size, compared_to.font_size)
+      && *this->font_face == *compared_to.font_face;
+  }
+};
+
+struct TextAttributesRun {
+  AllTextAttributes attributes;
+  ssize_t start, end;
+};
 
 class TextBlock {
  public:
   // TODO: have a default font it the user does not specify one
-  TextBlock(std::shared_ptr<FontFace> default_font_face, float default_font_size) : default_font_face_{default_font_face}, default_font_size_{default_font_size} {}
+  TextBlock(std::shared_ptr<FontFace> default_font_face, float default_font_size) {
+    AllTextAttributes base_attributes{default_font_face, default_font_size};
+    attributes_runs_.push_front(TextAttributesRun{
+      .attributes = base_attributes,
+      .start = 0,
+      .end = 0,
+    });
+  }
   ~TextBlock();
 
   void SetText(const uint16_t *, size_t length);
@@ -43,24 +76,13 @@ class TextBlock {
 
   const uint16_t *text_content() { return text_.data(); }
   ssize_t text_length() { return text_.size(); }
+  const std::list<TextAttributesRun> &attributes_runs() const { return attributes_runs_; }
 
-  const std::shared_ptr<FontFace> &default_font_face() { return default_font_face_; }
-  float default_font_size() const { return default_font_size_; }
-  void set_default_font_face(const std::shared_ptr<FontFace> &font_face) {
-    default_font_face_ = font_face;
-  }
-  void set_default_font_size(float &font_size) {
-    default_font_size_ = font_size;
-  }
-  void set_default_font(const std::shared_ptr<FontFace> &font_face, float font_size) {
-    default_font_face_ = font_face;
-    default_font_size_ = font_size;
-  }
+  void SetFontSize(float font_size, ssize_t start = 0, ssize_t end = -1);
 
  private:
   std::vector<uint16_t> text_;
-  std::shared_ptr<FontFace> default_font_face_;
-  float default_font_size_;
+  std::list<TextAttributesRun> attributes_runs_;
 };
 
 }
