@@ -70,15 +70,18 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
   auto attributes_runs_end = attributes_runs_.end();
   decltype(attributes_runs_)::iterator previous_run;
   for (auto current_run = attributes_runs_.begin(); current_run != attributes_runs_end; ++current_run) {
+    if (start >= current_run->end) {
+      previous_run = current_run;
+      continue;
+    }
+
     if (current_run->start > 0 && current_run->attributes == previous_run->attributes) {
+      // merge runs that became identical after a change
       current_run->start = previous_run->start;
       attributes_runs_.erase(previous_run, current_run);
     }
     previous_run = current_run;
 
-    if (start >= current_run->end) {
-      continue;
-    }
     if (end <= current_run->start) {
       break;
     }
@@ -122,7 +125,6 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
       current_run->start = end;
     }
   }
-  // TODO: merge elements that became identical
 }
 
 }

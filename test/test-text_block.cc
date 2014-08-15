@@ -85,6 +85,7 @@ TEST(TextBlock, SetFontSize) {
     ASSERT_EQ(*font_face, *first_run.attributes.font_face);
   }
 
+  // changing font size in the middle of an already existing run
   text_block.SetFontSize(14.0f, 1, 4);
   {
     ASSERT_EQ(3u, text_block.attributes_runs().size());
@@ -107,4 +108,10 @@ TEST(TextBlock, SetFontSize) {
     ASSERT_NEAR(12.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
     ASSERT_EQ(*font_face, *current_run->attributes.font_face);
   }
+
+  // TODO: need tests for following cases:
+  // - set font size over multiple runs
+  // - set font size over exactly 1 existing run
+  // - set font size with the end in the middle of an existing run
+  // - set font size with the start in the middle of an existing run
 }
