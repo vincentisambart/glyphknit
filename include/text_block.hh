@@ -81,6 +81,8 @@ class TextBlock {
   void SetFontSize(float font_size, ssize_t start = 0, ssize_t end = -1);
 
  private:
+  void MergeAdjacentRunsWithSameAttributes();
+
   std::vector<uint16_t> text_;
   std::list<TextAttributesRun> attributes_runs_;
 };

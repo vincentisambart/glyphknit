@@ -68,18 +68,10 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
 
   // std::list iterators are not invalidated if the current element is not deleted so we can modify the elements without too much of a problem
   auto attributes_runs_end = attributes_runs_.end();
-  decltype(attributes_runs_)::iterator previous_run;
-  for (auto current_run = attributes_runs_.begin(); current_run != attributes_runs_end; previous_run = current_run, ++current_run) {
+  for (auto current_run = attributes_runs_.begin(); current_run != attributes_runs_end; ++current_run) {
     if (start >= current_run->end) {
       continue;
     }
-
-    if (current_run->start > 0 && current_run->attributes == previous_run->attributes) {
-      // merge runs that became identical after a change
-      current_run->start = previous_run->start;
-      attributes_runs_.erase(previous_run, current_run);
-    }
-
     if (end <= current_run->start) {
       break;
     }
@@ -123,6 +115,25 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
       current_run->start = end;
     }
   }
+
+  MergeAdjacentRunsWithSameAttributes();
 }
+
+void TextBlock::MergeAdjacentRunsWithSameAttributes() {
+  auto current_run = attributes_runs_.begin();
+  auto attributes_runs_end = attributes_runs_.end();
+  assert(current_run != attributes_runs_end);  // we should always have at least 1 run
+  for (;;) {
+    auto previous_run = current_run++;
+    if (current_run == attributes_runs_end) {
+      break;
+    }
+    if (current_run->attributes == previous_run->attributes) {
+      current_run->start = previous_run->start;
+      attributes_runs_.erase(previous_run, current_run);
+    }
+  }
+}
+
 
 }
