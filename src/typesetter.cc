@@ -235,7 +235,7 @@ retry:
             current_end_offset = glyph_infos[glyph_index].cluster;
             break;
           }
-        }  // if all characters had not glyphs, current_end_offset does not need to be changed
+        }  // if all characters had no glyphs, current_end_offset does not need to be changed
         ++font_fallback_index;
         goto retry;
       }

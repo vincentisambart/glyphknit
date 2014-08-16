@@ -66,7 +66,6 @@ enum ComparisonFlags {
 };
 const double kAllowedPositionDelta = 1.0 / 16384.0;
 
-// TODO: Compare fonts
 void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphknit::TypesetLines &lines_typeset_by_glyphknit, const char *description, int flags = ComparisonFlags::kDefault) {
   ASSERT_EQ(lines_typeset_by_coretext.size(), lines_typeset_by_glyphknit.size()) << "The number of lines should be the same for " << description;
   auto lines_count = lines_typeset_by_glyphknit.size();

@@ -32,13 +32,15 @@ namespace glyphknit {
 
 typedef uint32_t Tag;
 
+const char kEmptyTagCharacter = ' ';
+
 constexpr inline
 Tag MakeTag(uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4) {
   return (Tag(c1) << 24) | (Tag(c2) << 16) | (Tag(c3) << 8) | Tag(uint8_t(c4));
 }
 
 constexpr inline
-Tag MakeTag(char c1, char c2 = ' ', char c3 = ' ', char c4 = ' ') {
+Tag MakeTag(char c1, char c2 = kEmptyTagCharacter, char c3 = kEmptyTagCharacter, char c4 = kEmptyTagCharacter) {
   return MakeTag(uint8_t(c1), uint8_t(c2), uint8_t(c3), uint8_t(c4));
 }
 

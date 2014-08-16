@@ -56,6 +56,31 @@ void MiniCoreTextTypesetter::Typeset(TextBlock &text_block, const size_t width, 
   for (auto &run : text_block.attributes_runs()) {
     auto ct_font = run.attributes.font_descriptor.CreateNativeFont(run.attributes.font_size);
     CFAttributedStringSetAttribute(attributed_string.get(), CFRangeMake(run.start, run.end-run.start), kCTFontAttributeName, ct_font.get());
+    const auto &language = run.attributes.language;
+    if (!language.is_undefined()) {
+      char language_name[8];
+      if (language.language_code == MakeTag('z','h')) {
+        if (language.opentype_tag == MakeTag('Z','H','H') || language.opentype_tag == MakeTag('Z','H','T')) {
+          std::strcpy(language_name, "zh-Hant");
+        }
+        else {
+          std::strcpy(language_name, "zh-Hans");
+        }
+      }
+      else if (((language.language_code >> 8) & 0xFF) == kEmptyTagCharacter) {  // 2 characters language code
+        language_name[0] = (language.language_code >> 24) & 0xFF;
+        language_name[1] = (language.language_code >> 16) & 0xFF;
+        language_name[2] = 0;
+      }
+      else {  // 3 characters language code
+        language_name[0] = (language.language_code >> 24) & 0xFF;
+        language_name[1] = (language.language_code >> 16) & 0xFF;
+        language_name[2] = (language.language_code >>  8) & 0xFF;
+        language_name[3] = 0;
+      }
+      auto native_language_name = MakeAutoReleasedCFRef(CFStringCreateWithCStringNoCopy(kCFAllocatorDefault, language_name, kCFStringEncodingUTF8, kCFAllocatorNull));
+      CFAttributedStringSetAttribute(attributed_string.get(), CFRangeMake(run.start, run.end-run.start), kCTLanguageAttributeName, native_language_name.get());
+    }
   }
   CFAttributedStringEndEditing(attributed_string.get());
 

@@ -35,8 +35,14 @@ struct Language {
   Tag language_code;
   Tag opentype_tag;
 
-  bool operator ==(const Language &language) const {
-    return language.language_code == this->language_code && language.opentype_tag == this->opentype_tag;
+  bool operator ==(const Language &compared_to) const {
+    if (is_undefined() && compared_to.is_undefined()) {
+      return true;
+    }
+    return compared_to.language_code == this->language_code && compared_to.opentype_tag == this->opentype_tag;
+  }
+  bool is_undefined() const {
+    return language_code == kTagUnknown;
   }
 };
 

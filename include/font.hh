@@ -41,6 +41,8 @@
 namespace glyphknit {
 
 class FontDescriptor {
+  // In fact FontDescriptor is a glorified shared_ptr to a class that does everything
+  // It's mainly to make it easier to use: the type name is simpler and no need to unreference the pointer for example when comparing
  public:
   FontDescriptor() : data_{nullptr} {}
   bool operator ==(const FontDescriptor &) const;
@@ -53,7 +55,7 @@ class FontDescriptor {
  private:
   friend class FontManager;
   class Data;
-  FontDescriptor(AutoReleasedCFRef<CTFontDescriptorRef> &&); // the font descriptor must have been normalized
+  FontDescriptor(AutoReleasedCFRef<CTFontDescriptorRef> &&);  // the font descriptor must have been normalized
   std::shared_ptr<Data> data_;
 };
 
