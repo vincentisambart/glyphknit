@@ -25,8 +25,9 @@
 #ifndef GLYPHKNIT_LANGUAGE_H_
 #define GLYPHKNIT_LANGUAGE_H_
 
-#include <unicode/uscript.h>
 #include "tag.hh"
+
+#include <unicode/uscript.h>
 
 namespace glyphknit {
 

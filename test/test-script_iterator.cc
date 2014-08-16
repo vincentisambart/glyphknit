@@ -22,11 +22,11 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-#include <unicode/ustring.h>
-
 #include "script_iterator.hh"
 
 #include "test.h"
+
+#include <unicode/ustring.h>
 
 const int kBufferSize = 2000;
 

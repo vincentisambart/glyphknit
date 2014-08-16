@@ -26,6 +26,7 @@
 #define GLYPHKNIT_UTF_H_
 
 #include <unicode/utf.h>
+#include <sys/types.h>
 
 namespace glyphknit {
 

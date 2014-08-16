@@ -22,14 +22,14 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
+#include "autorelease.hh"
+#include "language.hh"
+
 #include <CoreFoundation/CoreFoundation.h>
 
 #include <cstdio>
 #include <iostream>  // for debugging
 #include <vector>
-
-#include "autorelease.hh"
-#include "language.hh"
 
 namespace glyphknit {
 

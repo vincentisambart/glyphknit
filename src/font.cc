@@ -23,10 +23,10 @@
  */
 
 #include "font.hh"
-#include FT_TRUETYPE_TABLES_H
-#include FT_TRUETYPE_TAGS_H
 #include "autorelease.hh"
 
+#include FT_TRUETYPE_TABLES_H
+#include FT_TRUETYPE_TAGS_H
 #include <CoreFoundation/CoreFoundation.h>
 #include <sys/param.h>
 

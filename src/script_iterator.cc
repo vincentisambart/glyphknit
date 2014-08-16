@@ -22,12 +22,12 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
+#include "utf.hh"
+#include "script_iterator.hh"
+
 #include <cstring>
 #include <algorithm>
 #include <functional>
-
-#include "utf.hh"
-#include "script_iterator.hh"
 
 namespace glyphknit {
 

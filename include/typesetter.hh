@@ -25,9 +25,10 @@
 #ifndef GLYPHKNIT_TYPESETTER_H_
 #define GLYPHKNIT_TYPESETTER_H_
 
+#include "text_block.hh"
+
 #include <vector>
 #include <unicode/ubrk.h>
-#include "text_block.hh"
 
 namespace glyphknit {
 
