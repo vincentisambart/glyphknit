@@ -29,9 +29,9 @@
 TEST(TextBlock, SetText) {
   using glyphknit::TextBlock;
 
-  auto font_face = glyphknit::FontManager::LoadFontFromPostScriptName("SourceSansPro-Regular");
+  auto font_descriptor = glyphknit::FontManager::CreateDescriptorFromPostScriptName("SourceSansPro-Regular");
 
-  glyphknit::TextBlock text_block{font_face, 12.0f};
+  glyphknit::TextBlock text_block{font_descriptor, 12.0f};
   {
     ASSERT_EQ(0, text_block.text_length());
     ASSERT_EQ(1u, text_block.attributes_runs().size());
@@ -71,9 +71,9 @@ TEST(TextBlock, SetText) {
 TEST(TextBlock, SetFontSize) {
   using glyphknit::TextBlock;
 
-  auto font_face = glyphknit::FontManager::LoadFontFromPostScriptName("SourceSansPro-Regular");
+  auto font_descriptor = glyphknit::FontManager::CreateDescriptorFromPostScriptName("SourceSansPro-Regular");
 
-  glyphknit::TextBlock text_block{font_face, 12.0f};
+  glyphknit::TextBlock text_block{font_descriptor, 12.0f};
   text_block.SetText("abcdefghijklmnopqrstuvwxyz");
   {
     ASSERT_EQ(1u, text_block.attributes_runs().size());
@@ -82,7 +82,7 @@ TEST(TextBlock, SetFontSize) {
     ASSERT_EQ(0, current_run->start);
     ASSERT_EQ(26, current_run->end);
     ASSERT_NEAR(12.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
   }
 
   // changing font size in the middle of an already existing run
@@ -94,19 +94,19 @@ TEST(TextBlock, SetFontSize) {
     ASSERT_EQ(0, current_run->start);
     ASSERT_EQ(1, current_run->end);
     ASSERT_NEAR(12.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
 
     ++current_run;
     ASSERT_EQ(1, current_run->start);
     ASSERT_EQ(6, current_run->end);
     ASSERT_NEAR(14.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
 
     ++current_run;
     ASSERT_EQ(6, current_run->start);
     ASSERT_EQ(26, current_run->end);
     ASSERT_NEAR(12.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
   }
 
   // change font size over the separation between 2 existing runs
@@ -118,25 +118,25 @@ TEST(TextBlock, SetFontSize) {
     ASSERT_EQ(0, current_run->start);
     ASSERT_EQ(1, current_run->end);
     ASSERT_NEAR(12.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
 
     ++current_run;
     ASSERT_EQ(1, current_run->start);
     ASSERT_EQ(4, current_run->end);
     ASSERT_NEAR(14.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
 
     ++current_run;
     ASSERT_EQ(4, current_run->start);
     ASSERT_EQ(10, current_run->end);
     ASSERT_NEAR(16.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
 
     ++current_run;
     ASSERT_EQ(10, current_run->start);
     ASSERT_EQ(26, current_run->end);
     ASSERT_NEAR(12.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
   }
 
   // change font size to the end
@@ -148,25 +148,25 @@ TEST(TextBlock, SetFontSize) {
     ASSERT_EQ(0, current_run->start);
     ASSERT_EQ(1, current_run->end);
     ASSERT_NEAR(12.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
 
     ++current_run;
     ASSERT_EQ(1, current_run->start);
     ASSERT_EQ(4, current_run->end);
     ASSERT_NEAR(14.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
 
     ++current_run;
     ASSERT_EQ(4, current_run->start);
     ASSERT_EQ(9, current_run->end);
     ASSERT_NEAR(16.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
 
     ++current_run;
     ASSERT_EQ(9, current_run->start);
     ASSERT_EQ(26, current_run->end);
     ASSERT_NEAR(18.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
   }
 
   // change font size of the full block
@@ -178,7 +178,7 @@ TEST(TextBlock, SetFontSize) {
     ASSERT_EQ(0, current_run->start);
     ASSERT_EQ(26, current_run->end);
     ASSERT_NEAR(20.0f, current_run->attributes.font_size, glyphknit::kFontComparisonDelta);
-    ASSERT_EQ(*font_face, *current_run->attributes.font_face);
+    ASSERT_EQ(font_descriptor, current_run->attributes.font_descriptor);
   }
 }
 

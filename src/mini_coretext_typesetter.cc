@@ -53,8 +53,8 @@ void MiniCoreTextTypesetter::Typeset(TextBlock &text_block, const size_t width, 
   auto attributed_string = MakeAutoReleasedCFRef(CFAttributedStringCreateMutable(kCFAllocatorDefault, 0));
   CFAttributedStringReplaceString(attributed_string.get(), CFRangeMake(0, 0), string.get());
   CFAttributedStringBeginEditing(attributed_string.get());
-  for (const auto &run : text_block.attributes_runs()) {
-    auto ct_font = run.attributes.font_face->CreateCTFont(run.attributes.font_size);
+  for (auto &run : text_block.attributes_runs()) {
+    auto ct_font = run.attributes.font_descriptor.CreateNativeFont(run.attributes.font_size);
     CFAttributedStringSetAttribute(attributed_string.get(), CFRangeMake(run.start, run.end-run.start), kCTFontAttributeName, ct_font.get());
   }
   CFAttributedStringEndEditing(attributed_string.get());
@@ -106,7 +106,7 @@ void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t 
 
         TypesetRun generated_run{};
         generated_run.font_size = float(CTFontGetSize(font));
-        generated_run.font_face = FontManager::CreateFromCTFont(font);
+        generated_run.font_descriptor = FontManager::CreateDescriptorFromNativeFont(font);
         for (ssize_t glyph_index = 0; glyph_index < run_glyphs_count; ++glyph_index) {
           auto cp = GetCodepoint(text_content, text_length, offsets[glyph_index]);
           if (IsCodepointToIgnoreForComparison(cp)) {

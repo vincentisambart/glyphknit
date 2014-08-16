@@ -37,18 +37,18 @@ namespace glyphknit {
 static const float kDefaultFontSize = 12;
 
 struct AllTextAttributes {
-  std::shared_ptr<FontFace> font_face;
+  FontDescriptor font_descriptor;
   float font_size;
   Language language;
 
-  AllTextAttributes(const std::shared_ptr<FontFace> &face, float size = kDefaultFontSize, Language lang = kLanguageUnknown) :
-    font_face(face), font_size(size), language(lang) {}
-  AllTextAttributes() : font_face(nullptr), font_size(0), language(kLanguageUnknown) {}
+  AllTextAttributes(FontDescriptor descriptor, float size = kDefaultFontSize, Language lang = kLanguageUnknown) :
+    font_descriptor{descriptor}, font_size{size}, language(lang) {}
+  AllTextAttributes() : font_descriptor{}, font_size{0}, language(kLanguageUnknown) {}
 
   bool operator ==(const AllTextAttributes &compared_to) const {
     return this->language == compared_to.language
       && IsFontSizeSimilar(this->font_size, compared_to.font_size)
-      && *this->font_face == *compared_to.font_face;
+      && this->font_descriptor == compared_to.font_descriptor;
   }
 };
 
@@ -60,8 +60,8 @@ struct TextAttributesRun {
 class TextBlock {
  public:
   // TODO: have a default font if the user does not specify one
-  TextBlock(std::shared_ptr<FontFace> default_font_face, float default_font_size) {
-    AllTextAttributes base_attributes{default_font_face, default_font_size};
+  TextBlock(FontDescriptor default_font_descriptor, float default_font_size) {
+    AllTextAttributes base_attributes{default_font_descriptor, default_font_size};
     attributes_runs_.push_front(TextAttributesRun{
       .attributes = base_attributes,
       .start = 0,
@@ -79,7 +79,7 @@ class TextBlock {
   const std::list<TextAttributesRun> &attributes_runs() const { return attributes_runs_; }
 
   void SetFontSize(float font_size, ssize_t start = 0, ssize_t end = -1);
-  void SetFontFace(std::shared_ptr<FontFace> font_face, ssize_t start = 0, ssize_t end = -1);
+  void SetFontFace(FontDescriptor font_descriptor, ssize_t start = 0, ssize_t end = -1);
   void SetLanguage(Language language, ssize_t start = 0, ssize_t end = -1);
 
  private:

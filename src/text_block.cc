@@ -61,8 +61,8 @@ void TextBlock::SetFontSize(float font_size, ssize_t start, ssize_t end) {
   SetAttribute(&AllTextAttributes::font_size, font_size, IsFontSizeSimilar, start, end);
 }
 
-void TextBlock::SetFontFace(std::shared_ptr<FontFace> font_face, ssize_t start, ssize_t end) {
-  SetAttribute(&AllTextAttributes::font_face, font_face, [](std::shared_ptr<FontFace> a, std::shared_ptr<FontFace> b) { return *a == *b; }, start, end);
+void TextBlock::SetFontFace(FontDescriptor font_descriptor, ssize_t start, ssize_t end) {
+  SetAttribute(&AllTextAttributes::font_descriptor, font_descriptor, std::equal_to<FontDescriptor>{}, start, end);
 }
 
 void TextBlock::SetLanguage(Language language, ssize_t start, ssize_t end) {

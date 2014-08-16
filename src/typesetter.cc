@@ -84,7 +84,7 @@ static ssize_t CountGraphemeClusters(UBreakIterator *grapheme_cluster_iterator, 
 
 struct TypesettingState {
   hb_buffer_t *hb_buffer;
-  std::shared_ptr<FontFace> font_face;
+  FontDescriptor font_descriptor;
   float font_size;
   ssize_t  paragraph_start_offset;
   const uint16_t *paragraph_text;
@@ -100,7 +100,7 @@ void Typesetter::Shape(TypesettingState &state, ssize_t start_offset, ssize_t en
   hb_buffer_clear_contents(state.hb_buffer);
   hb_buffer_add_utf16(state.hb_buffer, state.paragraph_text, (int)state.paragraph_length, (unsigned int)start_offset, (int)(end_offset-start_offset));
   hb_buffer_set_direction(state.hb_buffer, HB_DIRECTION_LTR);
-  hb_shape(state.font_face->GetHBFont(), state.hb_buffer, nullptr, 0);
+  hb_shape(state.font_descriptor.GetHBFont(), state.hb_buffer, nullptr, 0);
 }
 
 ssize_t Typesetter::CountGlyphsThatFit(TypesettingState &state, ssize_t width) {
@@ -182,7 +182,7 @@ void Typesetter::NewTypesetParagraph(const uint16_t *paragraph_text, ssize_t par
   auto line_run = line_iterator.FindNextRun();
 
   ssize_t run_start = 0;
-  auto run_end = std::min(script_run.start, line_run.start);  // TODO: language_run, font_face_run, font_size_run, bidi_run
+  auto run_end = std::min(script_run.start, line_run.start);  // TODO: language_run, font_descriptor_run, font_size_run, bidi_run
 
   // TODO: be careful for the case where the line breaking point in inside a ligature
 
@@ -328,9 +328,9 @@ void Typesetter::OutputShape(TypesettingState &state) {
   glyphs.resize(glyphs_count);
 
   last_run.font_size = state.font_size;
-  last_run.font_face = state.font_face;
+  last_run.font_descriptor = state.font_descriptor;
 
-  const auto upem = hb_face_get_upem(hb_font_get_face(state.font_face->GetHBFont()));
+  const auto upem = hb_face_get_upem(hb_font_get_face(state.font_descriptor.GetHBFont()));
 
   ssize_t base_x = state.current_x_position, base_y = 0;
   for (unsigned int glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
@@ -348,8 +348,8 @@ void Typesetter::OutputShape(TypesettingState &state) {
 }
 
 void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLines &typeset_lines) {
-  const auto &font_face = text_block.attributes_runs().front().attributes.font_face;  // TODO: iterate over runs
-  auto ft_face = font_face->GetFTFace();
+  const auto &font_descriptor = text_block.attributes_runs().front().attributes.font_descriptor;  // TODO: iterate over runs
+  auto ft_face = font_descriptor.GetFTFace();
 
   auto font_size = text_block.attributes_runs().front().attributes.font_size;  // TODO: iterate over runs
   const ssize_t width_in_font_units = size_t(double(width) * ft_face->units_per_EM / font_size);
@@ -366,7 +366,7 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
 
   TypesettingState state = {
     .hb_buffer = hb_buffer,
-    .font_face = font_face,
+    .font_descriptor = font_descriptor,
     .font_size = font_size,
     .typeset_lines = typeset_lines,
     .width = width_in_font_units,
@@ -409,9 +409,9 @@ void Typesetter::DrawToContext(TextBlock &text_block, const size_t width, CGCont
   PositionGlyphs(text_block, width, typeset_lines);
 
   // TODO: use line heights from lines and/or runs
-  const auto &default_font_face = text_block.attributes_runs().front().attributes.font_face;
+  const auto &default_font_descriptor = text_block.attributes_runs().front().attributes.font_descriptor;
   auto default_font_size = text_block.attributes_runs().front().attributes.font_size;
-  auto default_ct_font = default_font_face->CreateCTFont(default_font_size);
+  auto default_ct_font = default_font_descriptor.CreateNativeFont(default_font_size);
 
   CGContextSetTextMatrix(context, CGAffineTransformIdentity);
   CGFloat total_height = 0;

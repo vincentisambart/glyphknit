@@ -79,7 +79,7 @@ void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphk
       auto &coretext_run = coretext_line.runs[run_index];
       auto &glyphknit_run = glyphknit_line.runs[run_index];
 
-      EXPECT_EQ(*coretext_run.font_face, *glyphknit_run.font_face) << "at run " << run_index << " at line " << line_index << " for " << description;
+      EXPECT_EQ(coretext_run.font_descriptor, glyphknit_run.font_descriptor) << "at run " << run_index << " at line " << line_index << " for " << description;
       EXPECT_NEAR(coretext_run.font_size, glyphknit_run.font_size, kAllowedPositionDelta) << "at run " << run_index << " at line " << line_index << " for " << description;
       EXPECT_EQ(coretext_run.glyphs.size(), glyphknit_run.glyphs.size()) << "at run " << run_index << " at line " << line_index << " for " << description;
 
@@ -101,8 +101,8 @@ void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphk
 const int kImageWidth = 200;
 const int kImageHeight = 100;
 void SimpleCompare(const char *text, const char *description, const char *font_name, float font_size, int flags = ComparisonFlags::kDefault) {
-  auto font = glyphknit::FontManager::LoadFontFromPostScriptName(font_name);
-  assert(font.get() != nullptr);
+  auto font = glyphknit::FontManager::CreateDescriptorFromPostScriptName(font_name);
+  assert(font.is_valid());
   glyphknit::TextBlock text_block{font, font_size};
   text_block.SetText(text);
 

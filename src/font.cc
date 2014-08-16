@@ -22,15 +22,31 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-#include <CoreFoundation/CoreFoundation.h>
-#include <sys/param.h>
-
 #include "font.hh"
 #include FT_TRUETYPE_TABLES_H
 #include FT_TRUETYPE_TAGS_H
 #include "autorelease.hh"
 
+#include <CoreFoundation/CoreFoundation.h>
+#include <sys/param.h>
+
 namespace glyphknit {
+
+class FontDescriptor::Data {
+ public:
+  AutoReleasedCFRef<CTFontDescriptorRef> &native_font_descriptor() { return native_font_descriptor_; }
+  Data(AutoReleasedCFRef<CTFontDescriptorRef> &&);
+  ~Data();
+  FT_Face GetFTFace() const;
+  hb_font_t *GetHBFont() const;
+  AutoReleasedCFRef<CTFontRef> CreateNativeFont(float size) const;
+  bool operator ==(const Data &) const;
+
+ private:
+  AutoReleasedCFRef<CTFontDescriptorRef> native_font_descriptor_;
+  mutable FT_Face ft_face_;
+  mutable hb_font_t *hb_font_;
+};
 
 static bool FaceContainsTable(FT_Face face, FT_ULong tag) {
   FT_ULong table_length = 0;
@@ -38,7 +54,7 @@ static bool FaceContainsTable(FT_Face face, FT_ULong tag) {
   return (error == 0);
 }
 
-FontFace::~FontFace() {
+FontDescriptor::Data::~Data() {
   if (ft_face_ != nullptr) {
     FT_Done_Face(ft_face_);
   }
@@ -47,32 +63,32 @@ FontFace::~FontFace() {
   }
 }
 
-FontFace::FontFace(AutoReleasedCFRef<CTFontDescriptorRef> &&font_descriptor) : font_descriptor_{font_descriptor}, ft_face_(nullptr), hb_font_(nullptr) {
+FontDescriptor::Data::Data(AutoReleasedCFRef<CTFontDescriptorRef> &&native_font_descriptor) : native_font_descriptor_{native_font_descriptor}, ft_face_{nullptr}, hb_font_{nullptr} {
 }
 
-AutoReleasedCFRef<CTFontRef> FontFace::CreateCTFont(float size) {
-  return {CTFontCreateWithFontDescriptor(font_descriptor_.get(), size, nullptr)};
+AutoReleasedCFRef<CTFontRef> FontDescriptor::Data::CreateNativeFont(float size) const {
+  return {CTFontCreateWithFontDescriptor(native_font_descriptor_.get(), size, nullptr)};
 }
 
-hb_font_t *FontFace::GetHBFont() {
+hb_font_t *FontDescriptor::Data::GetHBFont() const {
   if (hb_font_ == nullptr) {
     hb_font_ = hb_ft_font_create(GetFTFace(), nullptr);
   }
   return hb_font_;
 }
 
-FT_Face FontFace::GetFTFace() {
+FT_Face FontDescriptor::Data::GetFTFace() const {
   if (ft_face_ != nullptr) {
     return ft_face_;
   }
-  auto url = MakeAutoReleasedCFRef<CFURLRef>(CTFontDescriptorCopyAttribute(font_descriptor_.get(), kCTFontURLAttribute));
+  auto url = MakeAutoReleasedCFRef<CFURLRef>(CTFontDescriptorCopyAttribute(native_font_descriptor_.get(), kCTFontURLAttribute));
   assert(url.get() != nullptr);
 
   char path[MAXPATHLEN];
   auto could_get_representation = CFURLGetFileSystemRepresentation(url.get(), true, reinterpret_cast<uint8_t *>(path), sizeof(path));
   assert(could_get_representation);
 
-  auto font_name = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(font_descriptor_.get(), kCTFontNameAttribute));
+  auto font_name = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(native_font_descriptor_.get(), kCTFontNameAttribute));
 
   // TODO: save PostScript name in instance variable?
 
@@ -117,16 +133,37 @@ FT_Face FontFace::GetFTFace() {
   return ft_face;
 }
 
-bool FontFace::operator ==(const FontFace &compared_to) const {
-  if (this == &compared_to) {
+bool FontDescriptor::Data::operator ==(const FontDescriptor::Data &compared_to) const {
+  if (this == &compared_to || CFEqual(native_font_descriptor_.get(), compared_to.native_font_descriptor_.get())) {
     return true;
   }
-  auto font_name = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(font_descriptor_.get(), kCTFontNameAttribute));
-  auto font_name_to_compare_to = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(compared_to.font_descriptor_.get(), kCTFontNameAttribute));
+  auto font_name = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(native_font_descriptor_.get(), kCTFontNameAttribute));
+  auto font_name_to_compare_to = MakeAutoReleasedCFRef<CFStringRef>(CTFontDescriptorCopyAttribute(compared_to.native_font_descriptor_.get(), kCTFontNameAttribute));
   return CFEqual(font_name.get(), font_name_to_compare_to.get());
 }
 
-std::shared_ptr<FontFace> FontManager::LoadFontFromPostScriptName(const char *name) {
+
+bool FontDescriptor::operator ==(const FontDescriptor &compared_to) const {
+  return *data_ == *compared_to.data_;
+}
+
+FT_Face FontDescriptor::GetFTFace() const {
+  assert(is_valid());
+  return data_->GetFTFace();
+}
+hb_font_t *FontDescriptor::GetHBFont() const {
+  assert(is_valid());
+  return data_->GetHBFont();
+}
+AutoReleasedCFRef<CTFontRef> FontDescriptor::CreateNativeFont(float size) const {
+  assert(is_valid());
+  return data_->CreateNativeFont(size);
+}
+FontDescriptor::FontDescriptor(AutoReleasedCFRef<CTFontDescriptorRef> &&native_font_descriptor) : data_(std::make_shared<FontDescriptor::Data>(std::move(native_font_descriptor))) {
+}
+
+
+FontDescriptor FontManager::CreateDescriptorFromPostScriptName(const char *name) {
   auto cf_name = MakeAutoReleasedCFRef(CFStringCreateWithCString(kCFAllocatorDefault, name, kCFStringEncodingUTF8));
   auto basic_descriptor = MakeAutoReleasedCFRef(CTFontDescriptorCreateWithNameAndSize(cf_name.get(), 0.0));
 
@@ -135,17 +172,15 @@ std::shared_ptr<FontFace> FontManager::LoadFontFromPostScriptName(const char *na
 
   auto font_descriptor = MakeAutoReleasedCFRef(CTFontDescriptorCreateMatchingFontDescriptor(basic_descriptor.get(), mandatory_attributes.get()));
   if (font_descriptor.get() == nullptr) {
-    return {nullptr};
+    return {};
   }
 
-  // can't use std::make_shared because FontFace's constructor is private
-  return std::shared_ptr<FontFace>{new FontFace(std::move(font_descriptor))};
+  return {std::move(font_descriptor)};
 }
 
-std::shared_ptr<FontFace> FontManager::CreateFromCTFont(CTFontRef ct_font) {
+FontDescriptor FontManager::CreateDescriptorFromNativeFont(CTFontRef ct_font) {
   auto font_descriptor = MakeAutoReleasedCFRef(CTFontCopyFontDescriptor(ct_font));
-  // can't use std::make_shared because FontFace's constructor is private
-  return std::shared_ptr<FontFace>{new FontFace(std::move(font_descriptor))};
+  return {std::move(font_descriptor)};
 }
 
 FontManager *FontManager::instance() {

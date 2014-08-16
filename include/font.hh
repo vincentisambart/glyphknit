@@ -40,44 +40,38 @@
 
 namespace glyphknit {
 
-// TODO: Maybe rename to font descriptor?
-class FontFace {
+class FontDescriptor {
  public:
-  ~FontFace();
-  AutoReleasedCFRef<CTFontDescriptorRef> font_descriptor() const { return font_descriptor_; }
-
-  FT_Face GetFTFace();
-  hb_font_t *GetHBFont();
-  AutoReleasedCFRef<CTFontRef> CreateCTFont(float size);
+  FontDescriptor() : data_{nullptr} {}
+  bool operator ==(const FontDescriptor &) const;
+  bool is_valid() const { return data_.get() != nullptr; }
+  FT_Face GetFTFace() const;
+  hb_font_t *GetHBFont() const;
+  AutoReleasedCFRef<CTFontRef> CreateNativeFont(float size) const;
 
   // TODO: way to get variations (bold/thin, italic, ...)
-
-  bool operator ==(const FontFace &) const;
-
  private:
   friend class FontManager;
-  FontFace(AutoReleasedCFRef<CTFontDescriptorRef> &&); // the font descriptor must have been normalized
-  AutoReleasedCFRef<CTFontDescriptorRef> font_descriptor_;
-  FT_Face ft_face_;
-  hb_font_t *hb_font_;
+  class Data;
+  FontDescriptor(AutoReleasedCFRef<CTFontDescriptorRef> &&); // the font descriptor must have been normalized
+  std::shared_ptr<Data> data_;
 };
 
 class FontManager {
  public:
   FT_Library ft_library() const { return ft_library_; }
-  static std::shared_ptr<FontFace> LoadFontFromPostScriptName(const char *name);
-  static std::shared_ptr<FontFace> CreateFromCTFont(CTFontRef);
-  //static std::shared_ptr<FontFace> LoadFontFromLocalFile(const char *path);
+  static FontDescriptor CreateDescriptorFromPostScriptName(const char *name);
+  static FontDescriptor CreateDescriptorFromNativeFont(CTFontRef);
+  //static FontDescriptor CreateDescriptorFromLocalFile(const char *path);
   static FontManager *instance();
 
  private:
-
   FontManager();
   ~FontManager();
   FT_Library ft_library_;
 };
 
-static const float kFontComparisonDelta = 0.0625f;
+static const float kFontComparisonDelta = 0.015625f;
 inline bool IsFontSizeSimilar(float a, float b) {
   return std::abs(a - b) < kFontComparisonDelta;
 }
