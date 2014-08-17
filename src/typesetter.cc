@@ -264,24 +264,18 @@ retry:
 }
 
 void Typesetter::TypesetParagraph(TypesettingState &state) {
-  StartNewLine(state);
-
   UErrorCode status = U_ZERO_ERROR;
   ubrk_setText(state.line_break_iterator, state.paragraph_text, (int32_t)state.paragraph_length, &status);
   assert(U_SUCCESS(status));
   ubrk_setText(state.grapheme_cluster_iterator, state.paragraph_text, (int32_t)state.paragraph_length, &status);
   assert(U_SUCCESS(status));
 
-  ssize_t offset = 0, line_start_offset = 0;
-  while (offset < state.paragraph_length) {
-    auto codepoint_start_offset = offset;
-    if (LineIterator::IsLineSeparator(ConsumeCodepoint(state.paragraph_text, state.paragraph_length, offset))) {
-      TypesetLine(state, line_start_offset, codepoint_start_offset);
-      StartNewLine(state);
-      line_start_offset = offset;
-    }
+  LineIterator line_iterator{state.paragraph_text, state.paragraph_length};
+  // TODO: make line iterator more C++-like
+  for (auto line = line_iterator.FindNext(); line.start < state.paragraph_length; line = line_iterator.FindNext()) {
+    StartNewLine(state);
+    TypesetLine(state, line.start, line.end);
   }
-  TypesetLine(state, line_start_offset, state.paragraph_length);
 }
 
 void Typesetter::OutputShape(TypesettingState &state) {
@@ -342,27 +336,14 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
     .grapheme_cluster_iterator = grapheme_cluster_iterator_,
   };
 
-  ssize_t offset = 0, paragraph_start_offset = 0;
-  while (offset < text_length) {
-    auto codepoint_start_offset = offset;
-    auto c = ConsumeCodepoint(text_content, text_length, offset);
-    if (ParagraphIterator::IsParagraphSeparator(c)) {
-      state.paragraph_start_offset = paragraph_start_offset;
-      state.paragraph_text = text_content+paragraph_start_offset;
-      state.paragraph_length = codepoint_start_offset-paragraph_start_offset;
-      state.current_x_position = 0;
-      TypesetParagraph(state);
-      if (offset < text_length && c == '\r' && text_content[offset] == '\n') {
-        ++offset;
-      }
-      paragraph_start_offset = offset;
-    }
+  ParagraphIterator paragraph_iterator{text_content, text_length};
+  // TODO: make paragraph iterator more C++-like
+  for (auto paragraph = paragraph_iterator.FindNext(); paragraph.start < text_length; paragraph = paragraph_iterator.FindNext()) {
+    state.paragraph_start_offset = paragraph.start;
+    state.paragraph_text = text_content + paragraph.start;
+    state.paragraph_length = paragraph.end - paragraph.start;
+    TypesetParagraph(state);
   }
-  state.paragraph_start_offset = paragraph_start_offset;
-  state.paragraph_text = text_content+paragraph_start_offset;
-  state.paragraph_length = text_length-paragraph_start_offset;
-  state.current_x_position = 0;
-  TypesetParagraph(state);
 }
 
 static CGFloat CoreTextLineHeight(CTFontRef font) {
