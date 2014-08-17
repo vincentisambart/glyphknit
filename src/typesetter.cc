@@ -25,7 +25,7 @@
 #include "typesetter.hh"
 #include "at_scope_exit.hh"
 #include "autorelease.hh"
-#include "utf.hh"
+#include "newline.hh"
 
 #include <cassert>
 #include <cmath>
@@ -39,38 +39,6 @@
 // TODO: The state should be in a lighter Typesetter object, not a separate struct
 
 namespace glyphknit {
-
-// The Unicode specification (section 5.8) splits paragaph and line breaking characters.
-// The character concerned are CR (U+000D), LF (U+000A), NEL (U+0085), VT (U+000B), FF (U+000C), LS (U+2028), PS (U+2029).
-// "CR, LF, CRLF, and NEL should be treated the same" (they are called "NLF" below)
-// "In word processing, interpret any NLF the same as PS." (we'll be using the behavior for word processing apps)
-// "Always interpret PS as paragraph separator and LS as line separator."
-// The spec says that "FF does not interrupt a paragraph" meaning it's not a paragraph separator.
-// The specification also mentions that VT is used as a line separator in Microsoft Word.
-
-static bool IsLineSeparator(UChar32 c) {
-  switch (c) {
-    case 0x000B: // LINE/VERTICAL TABULATION (VT) \v
-    case 0x000C: // FORM FEED (FF) \f
-    case 0x2028: // LINE SEPARATOR (LS)
-      return true;
-    default:
-      return false;
-  }
-}
-
-// be careful as CR+LF should be handled as a single separator
-static bool IsParagraphSeparator(UChar32 c) {
-  switch (c) {
-    case 0x000A: // LINE FEED (LF) \n
-    case 0x000D: // CARRIAGE RETURN (CR) \r
-    case 0x0085: // NEXT LINE (NEL)
-    case 0x2029: // PARAGRAPH SEPARATOR (PS)
-      return true;
-    default:
-      return false;
-  }
-}
 
 static ssize_t CountGraphemeClusters(UBreakIterator *grapheme_cluster_iterator, ssize_t start_offset, ssize_t end_offset) {
   ssize_t grapheme_clusters_count = 0;
@@ -307,7 +275,7 @@ void Typesetter::TypesetParagraph(TypesettingState &state) {
   ssize_t offset = 0, line_start_offset = 0;
   while (offset < state.paragraph_length) {
     auto codepoint_start_offset = offset;
-    if (IsLineSeparator(ConsumeCodepoint(state.paragraph_text, state.paragraph_length, offset))) {
+    if (LineIterator::IsLineSeparator(ConsumeCodepoint(state.paragraph_text, state.paragraph_length, offset))) {
       TypesetLine(state, line_start_offset, codepoint_start_offset);
       StartNewLine(state);
       line_start_offset = offset;
@@ -378,7 +346,7 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
   while (offset < text_length) {
     auto codepoint_start_offset = offset;
     auto c = ConsumeCodepoint(text_content, text_length, offset);
-    if (IsParagraphSeparator(c)) {
+    if (ParagraphIterator::IsParagraphSeparator(c)) {
       state.paragraph_start_offset = paragraph_start_offset;
       state.paragraph_text = text_content+paragraph_start_offset;
       state.paragraph_length = codepoint_start_offset-paragraph_start_offset;

@@ -40,6 +40,6 @@ class MiniCoreTextTypesetter {
   void Typeset(TextBlock &text_block, size_t width, Callable);
 };
 
-};
+}
 
 #endif  // GLYPHKNIT_CORETEXT_TYPESETTER_H_

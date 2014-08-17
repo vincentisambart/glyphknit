@@ -77,6 +77,6 @@ class Typesetter {
   void StartNewLine(TypesettingState &);
 };
 
-};
+}
 
 #endif  // GLYPHKNIT_TYPESETTER_H_
