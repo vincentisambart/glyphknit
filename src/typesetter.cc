@@ -182,87 +182,6 @@ void Typesetter::NewTypesetParagraph(const uint16_t *paragraph_text, ssize_t par
 }
 #endif
 
-void Typesetter::TypesetLine(TypesettingState &state, ssize_t line_start_offset, ssize_t line_end_offset) {
-  if (line_start_offset >= line_end_offset) {
-    return;
-  }
-  ssize_t current_start_offset = line_start_offset, current_end_offset = line_end_offset;
-
-retry:
-  Shape(state, current_start_offset, current_end_offset);
-
-  auto glyphs_count = hb_buffer_get_length(state.hb_buffer);
-  auto glyph_infos = hb_buffer_get_glyph_infos(state.hb_buffer, nullptr);
-
-/*
-  for (ssize_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
-    if (glyph_infos[glyph_index].codepoint == 0) { // no glyph for that character could be found in the font
-      if (glyph_infos[glyph_index].cluster == current_start_offset) {
-        for (glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
-          if (glyph_infos[glyph_index].codepoint != 0) {
-            current_end_offset = glyph_infos[glyph_index].cluster;
-            break;
-          }
-        }  // if all characters had no glyphs, current_end_offset does not need to be changed
-        ++font_fallback_index;
-        goto retry;
-      }
-      else {
-        current_end_offset = glyph_infos[glyph_index].cluster;
-        break;
-      }
-    }
-  }
-  font_fallback_index = 0;
-*/
-
-  auto fitting_glyphs_count = CountGlyphsThatFit(state, state.width - state.current_x_position);
-  auto offset_after_fitting_glyphs = glyph_infos[fitting_glyphs_count].cluster;
-
-  ssize_t break_offset;
-  if (fitting_glyphs_count == glyphs_count) {
-    break_offset = current_end_offset;
-  }
-  else {
-    auto offset_after_not_fitting_glyph_cluster = FindTextOffsetAfterGlyphCluster(state, fitting_glyphs_count);
-
-    break_offset = offset_after_not_fitting_glyph_cluster;
-    do {
-      break_offset = ubrk_preceding(state.line_break_iterator, (int32_t)break_offset);
-      // ignore line break boundaries that are not at grapheme cluster boundary
-      // (for example between space and a combining mark)
-    } while (!ubrk_isBoundary(state.grapheme_cluster_iterator, (int32_t)break_offset));
-
-    if (break_offset <= current_start_offset) {
-      // no line break boundary can fit, so we have to cut by grapheme cluster
-      auto grapheme_clusters_count = CountGraphemeClusters(state.grapheme_cluster_iterator, offset_after_fitting_glyphs, offset_after_not_fitting_glyph_cluster);
-      if (grapheme_clusters_count == 1) {
-        break_offset = offset_after_fitting_glyphs;
-      }
-      else {
-        // we have to retry shaping with just a part of the glyph cluster as that might fit
-        current_end_offset = ubrk_preceding(state.grapheme_cluster_iterator, (int32_t)offset_after_not_fitting_glyph_cluster);
-        goto retry;
-      }
-    }
-    else {
-      assert(break_offset <= offset_after_fitting_glyphs);  // if it is possible to have a line breakable in the middle of a glyph cluster, would have to retry shaping with just a part of the glyph cluster
-    }
-
-    // reshape with the break offset found
-    Shape(state, current_start_offset, break_offset);
-  }
-
-  OutputShape(state);
-
-  current_start_offset = break_offset;
-  current_end_offset = line_end_offset;
-  if (current_start_offset < current_end_offset) {
-    StartNewLine(state);
-    goto retry;
-  }
-}
-
 void Typesetter::TypesetParagraph(TypesettingState &state) {
   UErrorCode status = U_ZERO_ERROR;
   ubrk_setText(state.line_break_iterator, state.paragraph_text, (int32_t)state.paragraph_length, &status);
@@ -271,10 +190,83 @@ void Typesetter::TypesetParagraph(TypesettingState &state) {
   assert(U_SUCCESS(status));
 
   LineIterator line_iterator{state.paragraph_text, state.paragraph_length};
-  // TODO: make line iterator more C++-like
   for (auto line = line_iterator.FindNext(); line.start < state.paragraph_length; line = line_iterator.FindNext()) {
     StartNewLine(state);
-    TypesetLine(state, line.start, line.end);
+    ssize_t current_start_offset = line.start, current_end_offset = line.end;
+
+retry:
+    Shape(state, current_start_offset, current_end_offset);
+
+    auto glyphs_count = hb_buffer_get_length(state.hb_buffer);
+    auto glyph_infos = hb_buffer_get_glyph_infos(state.hb_buffer, nullptr);
+
+/*
+    for (ssize_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
+      if (glyph_infos[glyph_index].codepoint == 0) { // no glyph for that character could be found in the font
+        if (glyph_infos[glyph_index].cluster == current_start_offset) {
+          for (glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
+            if (glyph_infos[glyph_index].codepoint != 0) {
+              current_end_offset = glyph_infos[glyph_index].cluster;
+              break;
+            }
+          }  // if all characters had no glyphs, current_end_offset does not need to be changed
+          ++font_fallback_index;
+          goto retry;
+        }
+        else {
+          current_end_offset = glyph_infos[glyph_index].cluster;
+          break;
+        }
+      }
+    }
+    font_fallback_index = 0;
+*/
+
+    auto fitting_glyphs_count = CountGlyphsThatFit(state, state.width - state.current_x_position);
+    auto offset_after_fitting_glyphs = glyph_infos[fitting_glyphs_count].cluster;
+
+    ssize_t break_offset;
+    if (fitting_glyphs_count == glyphs_count) {
+      break_offset = current_end_offset;
+    }
+    else {
+      auto offset_after_not_fitting_glyph_cluster = FindTextOffsetAfterGlyphCluster(state, fitting_glyphs_count);
+
+      break_offset = offset_after_not_fitting_glyph_cluster;
+      do {
+        break_offset = ubrk_preceding(state.line_break_iterator, (int32_t)break_offset);
+        // ignore line break boundaries that are not at grapheme cluster boundary
+        // (for example between space and a combining mark)
+      } while (!ubrk_isBoundary(state.grapheme_cluster_iterator, (int32_t)break_offset));
+
+      if (break_offset <= current_start_offset) {
+        // no line break boundary can fit, so we have to cut by grapheme cluster
+        auto grapheme_clusters_count = CountGraphemeClusters(state.grapheme_cluster_iterator, offset_after_fitting_glyphs, offset_after_not_fitting_glyph_cluster);
+        if (grapheme_clusters_count == 1) {
+          break_offset = offset_after_fitting_glyphs;
+        }
+        else {
+          // we have to retry shaping with just a part of the glyph cluster as that might fit
+          current_end_offset = ubrk_preceding(state.grapheme_cluster_iterator, (int32_t)offset_after_not_fitting_glyph_cluster);
+          goto retry;
+        }
+      }
+      else {
+        assert(break_offset <= offset_after_fitting_glyphs);  // if it is possible to have a line breakable in the middle of a glyph cluster, would have to retry shaping with just a part of the glyph cluster
+      }
+
+      // reshape with the break offset found
+      Shape(state, current_start_offset, break_offset);
+    }
+
+    OutputShape(state);
+
+    current_start_offset = break_offset;
+    current_end_offset = line.end;
+    if (current_start_offset < current_end_offset) {
+      StartNewLine(state);
+      goto retry;
+    }
   }
 }
 
@@ -337,7 +329,6 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
   };
 
   ParagraphIterator paragraph_iterator{text_content, text_length};
-  // TODO: make paragraph iterator more C++-like
   for (auto paragraph = paragraph_iterator.FindNext(); paragraph.start < text_length; paragraph = paragraph_iterator.FindNext()) {
     state.paragraph_start_offset = paragraph.start;
     state.paragraph_text = text_content + paragraph.start;

@@ -71,7 +71,6 @@ class Typesetter {
   void Shape(TypesettingState &, ssize_t start_offset, ssize_t end_offset);
   ssize_t CountGlyphsThatFit(TypesettingState &, ssize_t width);
   ssize_t FindTextOffsetAfterGlyphCluster(const TypesettingState &, ssize_t glyph_index);
-  void TypesetLine(TypesettingState &, ssize_t line_start_offset, ssize_t line_end_offset);
   void TypesetParagraph(TypesettingState &);
   void OutputShape(TypesettingState &);
   void StartNewLine(TypesettingState &);
