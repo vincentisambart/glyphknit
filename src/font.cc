@@ -29,105 +29,128 @@
 #include FT_TRUETYPE_TAGS_H
 #include <CoreFoundation/CoreFoundation.h>
 #include <sys/param.h>
+#include <iostream>  // for debugging
 
 namespace glyphknit {
+
+struct FontFamilyClassByName {
+  const char *name;
+  FontFamilyClass font_family_class;
+};
 
 static FontFamilyClass ResolveFontFamilyClass(FT_Face ft_face) {
   // in fact a font could be have multiple family classes (Cursive + Serif), but we will only keep the "major" one
 
-  FontFamilyClass resolved_family_class = FontFamilyClass::kUnknown;
-
   TT_OS2 *os2_table = static_cast<TT_OS2 *>(FT_Get_Sfnt_Table(ft_face, ft_sfnt_os2));
-  if (os2_table == nullptr) {
-    return resolved_family_class;
-  }
+  if (os2_table != nullptr) {
+    FontFamilyClass resolved_family_class = FontFamilyClass::kUnknown;
 
-  // http://www.monotypeimaging.com/ProductsServices/pan1.aspx
-  auto &panose = os2_table->panose;
-  auto panose_family_kind = panose[0];
-  if ((panose_family_kind == 2 && panose[3] == 9) || (panose_family_kind == 3 && panose[3] == 3) || (panose_family_kind == 4 && panose[3] == 9) || (panose_family_kind == 5 && panose[3] == 3)) {
-    return FontFamilyClass::kMonospaced;
-  }
-  switch (panose_family_kind) {
-    case 2: { // Latin Text
-      auto panose_serif_style = panose[1];
-      switch (panose_serif_style) {
-        case 2:  // Cove
-        case 3:  // Obtuse Cove
-        case 4:  // Square Cove
-        case 5:  // Obtuse Square Cove
-        case 6:  // Square
-        case 7:  // Thin
-        case 8:  // Oval
-        case 9:  // Exaggerated
-        case 10:  // Triangle
-          resolved_family_class = FontFamilyClass::kSerif;
-          break;
-        case 11:  // Normal Sans
-        case 12:  // Obtuse Sans
-        case 13:  // Perpendicular Sans
-        case 14:  // Flared
-        case 15:  // Rounded
-          resolved_family_class = FontFamilyClass::kSansSerif;
-          break;
-        default:
-          break;
-      }
-      break;
+    // http://www.monotypeimaging.com/ProductsServices/pan1.aspx
+    auto &panose = os2_table->panose;
+    auto panose_family_kind = panose[0];
+    if ((panose_family_kind == 2 && panose[3] == 9) || (panose_family_kind == 3 && panose[3] == 3) || (panose_family_kind == 4 && panose[3] == 9) || (panose_family_kind == 5 && panose[3] == 3)) {
+      return FontFamilyClass::kMonospaced;
     }
-    case 3:  // Latin Hand Written
-      resolved_family_class = FontFamilyClass::kCursive;
-      break;
-    case 4:  // Latin Decoratives
-    case 5:  // Latin Symbol
-      resolved_family_class = FontFamilyClass::kFantasy;
-      break;
-    default:
-      break;
+    switch (panose_family_kind) {
+      case 2: { // Latin Text
+        auto panose_serif_style = panose[1];
+        switch (panose_serif_style) {
+          case 2:  // Cove
+          case 3:  // Obtuse Cove
+          case 4:  // Square Cove
+          case 5:  // Obtuse Square Cove
+          case 6:  // Square
+          case 7:  // Thin
+          case 8:  // Oval
+          case 9:  // Exaggerated
+          case 10:  // Triangle
+            resolved_family_class = FontFamilyClass::kSerif;
+            break;
+          case 11:  // Normal Sans
+          case 12:  // Obtuse Sans
+          case 13:  // Perpendicular Sans
+          case 14:  // Flared
+          case 15:  // Rounded
+            resolved_family_class = FontFamilyClass::kSansSerif;
+            break;
+          default:
+            break;
+        }
+        break;
+      }
+      case 3:  // Latin Hand Written
+        resolved_family_class = FontFamilyClass::kCursive;
+        break;
+      case 4:  // Latin Decoratives
+      case 5:  // Latin Symbol
+        resolved_family_class = FontFamilyClass::kFantasy;
+        break;
+      default:
+        break;
+    }
+
+    // http://www.microsoft.com/typography/otspec/os2.htm#fc
+    // http://www.microsoft.com/typography/otspec/ibmfc.htm
+    uint8_t tt_font_class = (os2_table->sFamilyClass >> 8) & 0xff;
+    uint8_t tt_font_subclass = os2_table->sFamilyClass & 0xff;
+
+    switch (tt_font_class) {
+      case 1:  // Oldstyle Serifs
+        if (tt_font_subclass == 8) {  // Calligraphic
+          resolved_family_class = FontFamilyClass::kCursive;
+        }
+        else {
+          resolved_family_class = FontFamilyClass::kSerif;
+        }
+        break;
+      case 2:  // Transitional Serifs
+      case 3:  // Modern Serifs
+        if (tt_font_subclass == 2) {  // Script
+          resolved_family_class = FontFamilyClass::kCursive;
+        }
+        else {
+          resolved_family_class = FontFamilyClass::kSerif;
+        }
+        break;
+      case 4:  // Clarendon Serifs
+      case 5:  // Slab Serifs
+      case 7:  // Freeform Serifs
+        resolved_family_class = FontFamilyClass::kSerif;
+        break;
+      case 8:  // Sans Serif
+        resolved_family_class = FontFamilyClass::kSansSerif;
+        break;
+      case 9:  // Ornamentals
+      case 12:  // Symbolic
+        resolved_family_class = FontFamilyClass::kFantasy;
+        break;
+      case 10:  // Scripts
+        resolved_family_class = FontFamilyClass::kCursive;
+        break;
+      default:
+        break;
+    }
+
+    if (resolved_family_class != FontFamilyClass::kUnknown) {
+      return resolved_family_class;
+    }
   }
 
-  // http://www.microsoft.com/typography/otspec/os2.htm#fc
-  // http://www.microsoft.com/typography/otspec/ibmfc.htm
-  uint8_t tt_font_class = (os2_table->sFamilyClass >> 8) & 0xff;
-  uint8_t tt_font_subclass = os2_table->sFamilyClass & 0xff;
-  switch (tt_font_class) {
-    case 1:  // Oldstyle Serifs
-      if (tt_font_subclass == 8) {  // Calligraphic
-        resolved_family_class = FontFamilyClass::kCursive;
-      }
-      else {
-        resolved_family_class = FontFamilyClass::kSerif;
-      }
-      break;
-    case 2:  // Transitional Serifs
-    case 3:  // Modern Serifs
-      if (tt_font_subclass == 2) {  // Script
-        resolved_family_class = FontFamilyClass::kCursive;
-      }
-      else {
-        resolved_family_class = FontFamilyClass::kSerif;
-      }
-      break;
-    case 4:  // Clarendon Serifs
-    case 5:  // Slab Serifs
-    case 7:  // Freeform Serifs
-      resolved_family_class = FontFamilyClass::kSerif;
-      break;
-    case 8:  // Sans Serif
-      resolved_family_class = FontFamilyClass::kSansSerif;
-      break;
-    case 9:  // Ornamentals
-    case 12:  // Symbolic
-      resolved_family_class = FontFamilyClass::kFantasy;
-      break;
-    case 10:  // Scripts
-      resolved_family_class = FontFamilyClass::kCursive;
-      break;
-    default:
-      break;
-  }
+  // we couldn't find the class just using the OS2 table, or there was no OS2 table, so we have to try with the font name
+  static const FontFamilyClassByName kDefaultFontFamilyClassByName[] = {
+    {"Courier",   FontFamilyClass::kMonospaced},
+    {"Helvetica", FontFamilyClass::kSansSerif},
+    {"Times",     FontFamilyClass::kSerif},
+    {"Monaco",    FontFamilyClass::kMonospaced},
+  };
 
-  return resolved_family_class;
+  const char *postscript_name = FT_Get_Postscript_Name(ft_face);
+  for (auto &&default_class : kDefaultFontFamilyClassByName) {
+    if (strstr(postscript_name, default_class.name) != nullptr) {
+      return default_class.font_family_class;
+    }
+  }
+  return FontFamilyClass::kUnknown;
 }
 
 class FontDescriptor::Data {
