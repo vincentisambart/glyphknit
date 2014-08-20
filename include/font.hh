@@ -40,6 +40,15 @@
 
 namespace glyphknit {
 
+enum class FontFamilyClass {
+  kUnknown,
+  kSansSerif,
+  kSerif,
+  kMonospaced,
+  kCursive,
+  kFantasy,
+};
+
 class FontDescriptor {
   // In fact FontDescriptor is a glorified shared_ptr to a class that does everything
   // It's mainly to make it easier to use: the type name is simpler and no need to unreference the pointer for example when comparing
@@ -50,6 +59,7 @@ class FontDescriptor {
   FT_Face GetFTFace() const;
   hb_font_t *GetHBFont() const;
   AutoReleasedCFRef<CTFontRef> CreateNativeFont(float size) const;
+  FontFamilyClass font_family_class() const;
 
   // TODO: way to get variations (bold/thin, italic, ...)
  private:

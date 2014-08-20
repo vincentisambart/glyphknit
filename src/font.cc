@@ -32,6 +32,104 @@
 
 namespace glyphknit {
 
+static FontFamilyClass ResolveFontFamilyClass(FT_Face ft_face) {
+  // in fact a font could be have multiple family classes (Cursive + Serif), but we will only keep the "major" one
+
+  FontFamilyClass resolved_family_class = FontFamilyClass::kUnknown;
+
+  TT_OS2 *os2_table = static_cast<TT_OS2 *>(FT_Get_Sfnt_Table(ft_face, ft_sfnt_os2));
+  if (os2_table == nullptr) {
+    return resolved_family_class;
+  }
+
+  // http://www.monotypeimaging.com/ProductsServices/pan1.aspx
+  auto &panose = os2_table->panose;
+  auto panose_family_kind = panose[0];
+  if ((panose_family_kind == 2 && panose[3] == 9) || (panose_family_kind == 3 && panose[3] == 3) || (panose_family_kind == 4 && panose[3] == 9) || (panose_family_kind == 5 && panose[3] == 3)) {
+    return FontFamilyClass::kMonospaced;
+  }
+  switch (panose_family_kind) {
+    case 2: { // Latin Text
+      auto panose_serif_style = panose[1];
+      switch (panose_serif_style) {
+        case 2:  // Cove
+        case 3:  // Obtuse Cove
+        case 4:  // Square Cove
+        case 5:  // Obtuse Square Cove
+        case 6:  // Square
+        case 7:  // Thin
+        case 8:  // Oval
+        case 9:  // Exaggerated
+        case 10:  // Triangle
+          resolved_family_class = FontFamilyClass::kSerif;
+          break;
+        case 11:  // Normal Sans
+        case 12:  // Obtuse Sans
+        case 13:  // Perpendicular Sans
+        case 14:  // Flared
+        case 15:  // Rounded
+          resolved_family_class = FontFamilyClass::kSansSerif;
+          break;
+        default:
+          break;
+      }
+      break;
+    }
+    case 3:  // Latin Hand Written
+      resolved_family_class = FontFamilyClass::kCursive;
+      break;
+    case 4:  // Latin Decoratives
+    case 5:  // Latin Symbol
+      resolved_family_class = FontFamilyClass::kFantasy;
+      break;
+    default:
+      break;
+  }
+
+  // http://www.microsoft.com/typography/otspec/os2.htm#fc
+  // http://www.microsoft.com/typography/otspec/ibmfc.htm
+  uint8_t tt_font_class = (os2_table->sFamilyClass >> 8) & 0xff;
+  uint8_t tt_font_subclass = os2_table->sFamilyClass & 0xff;
+  switch (tt_font_class) {
+    case 1:  // Oldstyle Serifs
+      if (tt_font_subclass == 8) {  // Calligraphic
+        resolved_family_class = FontFamilyClass::kCursive;
+      }
+      else {
+        resolved_family_class = FontFamilyClass::kSerif;
+      }
+      break;
+    case 2:  // Transitional Serifs
+    case 3:  // Modern Serifs
+      if (tt_font_subclass == 2) {  // Script
+        resolved_family_class = FontFamilyClass::kCursive;
+      }
+      else {
+        resolved_family_class = FontFamilyClass::kSerif;
+      }
+      break;
+    case 4:  // Clarendon Serifs
+    case 5:  // Slab Serifs
+    case 7:  // Freeform Serifs
+      resolved_family_class = FontFamilyClass::kSerif;
+      break;
+    case 8:  // Sans Serif
+      resolved_family_class = FontFamilyClass::kSansSerif;
+      break;
+    case 9:  // Ornamentals
+    case 12:  // Symbolic
+      resolved_family_class = FontFamilyClass::kFantasy;
+      break;
+    case 10:  // Scripts
+      resolved_family_class = FontFamilyClass::kCursive;
+      break;
+    default:
+      break;
+  }
+
+  return resolved_family_class;
+}
+
 class FontDescriptor::Data {
  public:
   AutoReleasedCFRef<CTFontDescriptorRef> &native_font_descriptor() { return native_font_descriptor_; }
@@ -41,18 +139,27 @@ class FontDescriptor::Data {
   hb_font_t *GetHBFont() const;
   AutoReleasedCFRef<CTFontRef> CreateNativeFont(float size) const;
   bool operator ==(const Data &) const;
+  FontFamilyClass font_family_class() const {
+    GetFTFace();  // needed so that the family class is resolved
+    return font_family_class_;
+  }
 
  private:
   AutoReleasedCFRef<CTFontDescriptorRef> native_font_descriptor_;
   mutable FT_Face ft_face_;
   mutable hb_font_t *hb_font_;
+  // The font family class is mutable because we need the FT_Face to be able to compute it.
+  // TODO: Creating the FT_Face from the constructor might be a better idea.
+  mutable FontFamilyClass font_family_class_;
 };
 
+/*
 static bool FaceContainsTable(FT_Face face, FT_ULong tag) {
   FT_ULong table_length = 0;
   auto error = FT_Load_Sfnt_Table(face, tag, 0, nullptr, &table_length);
   return (error == 0);
 }
+*/
 
 FontDescriptor::Data::~Data() {
   if (ft_face_ != nullptr) {
@@ -63,7 +170,7 @@ FontDescriptor::Data::~Data() {
   }
 }
 
-FontDescriptor::Data::Data(AutoReleasedCFRef<CTFontDescriptorRef> &&native_font_descriptor) : native_font_descriptor_{native_font_descriptor}, ft_face_{nullptr}, hb_font_{nullptr} {
+FontDescriptor::Data::Data(AutoReleasedCFRef<CTFontDescriptorRef> &&native_font_descriptor) : native_font_descriptor_{native_font_descriptor}, ft_face_{nullptr}, hb_font_{nullptr}, font_family_class_(FontFamilyClass::kUnknown) {
 }
 
 AutoReleasedCFRef<CTFontRef> FontDescriptor::Data::CreateNativeFont(float size) const {
@@ -126,8 +233,9 @@ FT_Face FontDescriptor::Data::GetFTFace() const {
   error = FT_Set_Char_Size(ft_face, 0, ft_face->units_per_EM, 0, 0);
   assert(!error);
 
-  assert(!FaceContainsTable(ft_face, TTAG_morx));
+//  assert(!FaceContainsTable(ft_face, TTAG_morx));
 
+  font_family_class_ = ResolveFontFamilyClass(ft_face);
   ft_face_ = ft_face;
 
   return ft_face;
@@ -158,6 +266,10 @@ hb_font_t *FontDescriptor::GetHBFont() const {
 AutoReleasedCFRef<CTFontRef> FontDescriptor::CreateNativeFont(float size) const {
   assert(is_valid());
   return data_->CreateNativeFont(size);
+}
+FontFamilyClass FontDescriptor::font_family_class() const {
+  assert(is_valid());
+  return data_->font_family_class();
 }
 FontDescriptor::FontDescriptor(AutoReleasedCFRef<CTFontDescriptorRef> &&native_font_descriptor) : data_(std::make_shared<FontDescriptor::Data>(std::move(native_font_descriptor))) {
 }
