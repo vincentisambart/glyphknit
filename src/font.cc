@@ -39,7 +39,7 @@ struct FontFamilyClassByName {
 };
 
 static FontFamilyClass ResolveFontFamilyClass(FT_Face ft_face) {
-  // in fact a font could be have multiple family classes (Cursive + Serif), but we will only keep the "major" one
+  // in fact a font could be have multiple family classes (Cursive + Serif), but we will only return the "major" one
 
   TT_OS2 *os2_table = static_cast<TT_OS2 *>(FT_Get_Sfnt_Table(ft_face, ft_sfnt_os2));
   if (os2_table != nullptr) {
@@ -49,7 +49,7 @@ static FontFamilyClass ResolveFontFamilyClass(FT_Face ft_face) {
     auto &panose = os2_table->panose;
     auto panose_family_kind = panose[0];
     if ((panose_family_kind == 2 && panose[3] == 9) || (panose_family_kind == 3 && panose[3] == 3) || (panose_family_kind == 4 && panose[3] == 9) || (panose_family_kind == 5 && panose[3] == 3)) {
-      return FontFamilyClass::kMonospaced;
+      return FontFamilyClass::kMonospace;
     }
     switch (panose_family_kind) {
       case 2: { // Latin Text
@@ -138,10 +138,10 @@ static FontFamilyClass ResolveFontFamilyClass(FT_Face ft_face) {
 
   // we couldn't find the class just using the OS2 table, or there was no OS2 table, so we have to try with the font name
   static const FontFamilyClassByName kDefaultFontFamilyClassByName[] = {
-    {"Courier",   FontFamilyClass::kMonospaced},
+    {"Courier",   FontFamilyClass::kMonospace},
     {"Helvetica", FontFamilyClass::kSansSerif},
     {"Times",     FontFamilyClass::kSerif},
-    {"Monaco",    FontFamilyClass::kMonospaced},
+    {"Monaco",    FontFamilyClass::kMonospace},
   };
 
   const char *postscript_name = FT_Get_Postscript_Name(ft_face);
@@ -295,6 +295,241 @@ FontFamilyClass FontDescriptor::font_family_class() const {
   return data_->font_family_class();
 }
 FontDescriptor::FontDescriptor(AutoReleasedCFRef<CTFontDescriptorRef> &&native_font_descriptor) : data_(std::make_shared<FontDescriptor::Data>(std::move(native_font_descriptor))) {
+}
+
+static const char *kSansSerifFallbackFonts[] = {
+  "Helvetica",
+  //"AppleColorEmoji",
+  "AppleSymbolsFB",
+  "GeezaPro",
+  "Thonburi",
+  "Kailasa",
+  "BanglaSangamMN",
+  "DevanagariSangamMN",
+  "GujaratiMT",
+  "MonotypeGurmukhi",
+  "KannadaSangamMN",
+  "KhmerSangamMN",
+  "LaoSangamMN",
+  "MalayalamSangamMN",
+  "MyanmarSangamMN",
+  "OriyaSangamMN",
+  "SinhalaSangamMN",
+  "InaiMathi",
+  "TeluguSangamMN",
+  "Mshtakan",
+  "EuphemiaUCAS",
+  "PlantagenetCherokee",
+};
+static const char *kSerifFallbackFonts[] = {
+  "Times-Roman",
+  "Helvetica",
+  //"AppleColorEmoji",
+  "AppleSymbolsFB",
+  "GeezaPro",
+  "Thonburi",
+  "Kokonor",
+  "BanglaMN",
+  "DevanagariMT",
+  "GujaratiMT",
+  "MonotypeGurmukhi",
+  "KannadaMN",
+  "KhmerMN",
+  "LaoMN",
+  "MalayalamMN",
+  "MyanmarMN",
+  "OriyaMN",
+  "SinhalaMN",
+  "InaiMathi",
+  "TeluguMN",
+  "Mshtakan",
+  "EuphemiaUCAS",
+  "PlantagenetCherokee",
+};
+static const char *kCursiveFallbackFonts[] = {
+  "Apple-Chancery",
+  //"AppleColorEmoji",
+  "AppleSymbolsFB",
+  "GeezaPro",
+  "Thonburi",
+  "DevanagariSangamMN",
+  "Kokonor",
+  "BanglaMN",
+  "GujaratiMT",
+  "MonotypeGurmukhi",
+  "KannadaMN",
+  "KhmerMN",
+  "LaoMN",
+  "MalayalamMN",
+  "MyanmarMN",
+  "OriyaMN",
+  "SinhalaMN",
+  "InaiMathi",
+  "TeluguMN",
+  "Mshtakan",
+  "EuphemiaUCAS",
+  "PlantagenetCherokee",
+};
+static const char *kFantasyFallbackFonts[] = {
+  "Zapfino",
+  //"AppleColorEmoji",
+  "AppleSymbolsFB",
+  "GeezaPro",
+  "Thonburi",
+  "DevanagariSangamMN",
+  "Kokonor",
+  "BanglaMN",
+  "GujaratiMT",
+  "MonotypeGurmukhi",
+  "KannadaMN",
+  "KhmerMN",
+  "LaoMN",
+  "MalayalamMN",
+  "MyanmarMN",
+  "OriyaMN",
+  "SinhalaMN",
+  "InaiMathi",
+  "TeluguMN",
+  "Mshtakan",
+  "EuphemiaUCAS",
+  "PlantagenetCherokee",
+};
+static const char *kMonospaceFallbackFonts[] = {
+  "Monaco",
+  //"AppleColorEmoji",
+  "AppleSymbolsFB",
+  "Helvetica",
+  "Baghdad",
+  "Ayuthaya",
+  "Kailasa",
+  "BanglaSangamMN",
+  "DevanagariSangamMN",
+  "GujaratiMT",
+  "MonotypeGurmukhi",
+  "KannadaSangamMN",
+  "KhmerSangamMN",
+  "LaoSangamMN",
+  "MalayalamSangamMN",
+  "MyanmarSangamMN",
+  "OriyaSangamMN",
+  "SinhalaSangamMN",
+  "InaiMathi",
+  "TeluguSangamMN",
+  "Mshtakan",
+  "EuphemiaUCAS",
+  "PlantagenetCherokee",
+};
+
+FontDescriptor FontDescriptor::GetFallback(size_t index, Language language) {
+  assert(is_valid());
+  if (index == 0) {
+    return *this;
+  }
+  --index;
+
+  auto klass = font_family_class();
+
+  const char *font_name = nullptr;
+  if (language.language_code == MakeTag('j','a')) {
+    switch (klass) {
+      case FontFamilyClass::kSerif:
+      case FontFamilyClass::kCursive:
+      case FontFamilyClass::kFantasy:
+        font_name = "HiraMinProN-W3";
+        break;
+      default:
+        font_name = "HiraKakuProN-W3";
+        break;
+    }
+  }
+  else if (language.language_code == MakeTag('z','h')) {
+    if (language.opentype_tag == MakeTag('Z','H','S')) {
+      switch (klass) {
+        case FontFamilyClass::kSerif:
+          font_name = "STSongti-SC-Regular";
+          break;
+        case FontFamilyClass::kCursive:
+        case FontFamilyClass::kFantasy:
+          font_name = "STKaiti-SC-Regular";
+          break;
+        default:
+          font_name = "STHeitiSC-Light";
+          break;
+      }
+    }
+    else if (language.opentype_tag == MakeTag('Z','H','T') || language.opentype_tag == MakeTag('Z','H','H')) {
+      switch (klass) {
+        case FontFamilyClass::kSerif:
+          font_name = "STSongti-TC-Regular";
+          break;
+        case FontFamilyClass::kCursive:
+        case FontFamilyClass::kFantasy:
+          font_name = "DFKaiShu-SB-Estd-BF";
+          break;
+        default:
+          font_name = "STHeitiTC-Light";
+          break;
+      }
+    }
+  }
+  else if (language.language_code == MakeTag('k','o')) {
+    switch (klass) {
+      case FontFamilyClass::kSerif:
+      case FontFamilyClass::kCursive:
+      case FontFamilyClass::kFantasy:
+        font_name = "AppleMyungjo";
+        break;
+      default:
+        font_name = "AppleSDGothicNeo-Regular";
+        break;
+    }
+  }
+  if (font_name) {
+    if (index == 0) {
+      return FontManager::CreateDescriptorFromPostScriptName(font_name);
+    }
+    --index;
+  }
+
+  size_t fallbacks_count;
+  const char **fallbacks;
+  switch (klass) {
+    case FontFamilyClass::kSerif: {
+      fallbacks = kSerifFallbackFonts;
+      fallbacks_count = std::end(kSerifFallbackFonts) - std::begin(kSerifFallbackFonts);
+      break;
+    }
+    case FontFamilyClass::kMonospace: {
+      fallbacks = kMonospaceFallbackFonts;
+      fallbacks_count = std::end(kMonospaceFallbackFonts) - std::begin(kMonospaceFallbackFonts);
+      break;
+    }
+    case FontFamilyClass::kCursive: {
+      fallbacks = kCursiveFallbackFonts;
+      fallbacks_count = std::end(kCursiveFallbackFonts) - std::begin(kCursiveFallbackFonts);
+      break;
+    }
+    case FontFamilyClass::kFantasy: {
+      fallbacks = kFantasyFallbackFonts;
+      fallbacks_count = std::end(kFantasyFallbackFonts) - std::begin(kFantasyFallbackFonts);
+      break;
+    }
+    default: {
+      fallbacks = kSansSerifFallbackFonts;
+      fallbacks_count = std::end(kSansSerifFallbackFonts) - std::begin(kSansSerifFallbackFonts);
+      break;
+    }
+  }
+  if (index < fallbacks_count) {
+    font_name = fallbacks[index];
+  }
+  else if (index == fallbacks_count) {
+    font_name = ".LastResort";
+  }
+  else {
+    std::abort();
+  }
+  return FontManager::CreateDescriptorFromPostScriptName(font_name);
 }
 
 

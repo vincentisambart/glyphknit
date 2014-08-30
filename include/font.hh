@@ -26,6 +26,7 @@
 #define GLYPHKNIT_FONT_H_
 
 #include "autorelease.hh"
+#include "language.hh"
 
 #include <memory>
 #include <cmath>
@@ -44,7 +45,7 @@ enum class FontFamilyClass {
   kUnknown,
   kSansSerif,
   kSerif,
-  kMonospaced,
+  kMonospace,
   kCursive,
   kFantasy,
 };
@@ -58,6 +59,7 @@ class FontDescriptor {
   bool is_valid() const { return data_.get() != nullptr; }
   FT_Face GetFTFace() const;
   hb_font_t *GetHBFont() const;
+  FontDescriptor GetFallback(size_t index, Language);
   AutoReleasedCFRef<CTFontRef> CreateNativeFont(float size) const;
   FontFamilyClass font_family_class() const;
 

@@ -44,11 +44,11 @@ TEST(Font, FontFamilyClass) {
   descriptor = FontManager::CreateDescriptorFromPostScriptName("Webdings");
   ASSERT_EQ(FontFamilyClass::kFantasy, descriptor.font_family_class());
   descriptor = FontManager::CreateDescriptorFromPostScriptName("Courier");
-  ASSERT_EQ(FontFamilyClass::kMonospaced, descriptor.font_family_class());
+  ASSERT_EQ(FontFamilyClass::kMonospace, descriptor.font_family_class());
   descriptor = FontManager::CreateDescriptorFromPostScriptName("Monaco");
-  ASSERT_EQ(FontFamilyClass::kMonospaced, descriptor.font_family_class());
+  ASSERT_EQ(FontFamilyClass::kMonospace, descriptor.font_family_class());
   descriptor = FontManager::CreateDescriptorFromPostScriptName("Menlo-Regular");
-  ASSERT_EQ(FontFamilyClass::kMonospaced, descriptor.font_family_class());
+  ASSERT_EQ(FontFamilyClass::kMonospace, descriptor.font_family_class());
   descriptor = FontManager::CreateDescriptorFromPostScriptName("PTSerif-Regular");
   ASSERT_EQ(FontFamilyClass::kSerif, descriptor.font_family_class());
   descriptor = FontManager::CreateDescriptorFromPostScriptName("Times-Roman");
