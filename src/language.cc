@@ -125,7 +125,7 @@ Language FindLanguageCodeAndOpenTypeLanguageTag(const char *language, ssize_t le
     }
   }
 
-  // the check has to be done after the previous look to allow unknown languages with -fonipa
+  // the check has to be done after the previous loop to allow unknown languages with -fonipa
   if (default_opentype_tag == end || default_opentype_tag->language != language_tag) {
     return {.language_code = language_tag, .opentype_tag = kOpenTypeTagDefaultLanguage};
   }

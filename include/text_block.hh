@@ -74,8 +74,8 @@ class TextBlock {
   void SetText(const char *, size_t length);
   void SetText(const char *);
 
-  const uint16_t *text_content() { return text_.data(); }
-  ssize_t text_length() { return text_.size(); }
+  const uint16_t *text_content() const { return text_.data(); }
+  ssize_t text_length() const { return text_.size(); }
   const std::list<TextAttributesRun> &attributes_runs() const { return attributes_runs_; }
 
   void SetFontSize(float font_size, ssize_t start = 0, ssize_t end = -1);

@@ -41,6 +41,9 @@ struct Language {
     }
     return compared_to.language_code == this->language_code && compared_to.opentype_tag == this->opentype_tag;
   }
+  bool operator !=(const Language &compared_to) const {
+    return !(*this == compared_to);
+  }
   bool is_undefined() const {
     return language_code == kTagUnknown;
   }
