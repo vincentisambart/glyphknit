@@ -1,5 +1,7 @@
 #include "language_iterator.hh"
 
+#include <iostream>
+
 namespace glyphknit {
 
 void LanguageIterator::FindNextScriptRun() {
@@ -10,7 +12,7 @@ void LanguageIterator::FindNextScriptRun() {
 
 // TODO: always use offsets in the full text (in ScriptIterator), not just local ones
 LanguageIterator::Run LanguageIterator::FindNextRun() {
-  while (script_run_.end + start_index_ < end_index_) {
+  while (script_run_.start + start_index_ < end_index_) {
     if (run_start_ >= script_run_.end) {
       FindNextScriptRun();
     }

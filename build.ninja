@@ -31,6 +31,7 @@ build $build_dir/test-script_iterator.o: cxx $test_dir/test-script_iterator.cc
 build $build_dir/test-language.o: cxx $test_dir/test-language.cc
 build $build_dir/test-text_block.o: cxx $test_dir/test-text_block.cc
 build $build_dir/test-font.o: cxx $test_dir/test-font.cc
+build $build_dir/test-language_iterator.o: cxx $test_dir/test-language_iterator.cc
 
 build $build_dir/text_block.o: cxx $src_dir/text_block.cc
 build $build_dir/typesetter.o: cxx $src_dir/typesetter.cc
@@ -42,5 +43,5 @@ build $build_dir/font.o: cxx $src_dir/font.cc
 
 build $build_dir/gtest-all.o: cxx_gtest $gtest_dir/src/gtest-all.cc
 
-build $build_dir/test: ld $build_dir/text_block.o $build_dir/typesetter.o $build_dir/mini_coretext_typesetter.o $build_dir/gtest-all.o $build_dir/test-typeset.o $build_dir/test-text_block.o $build_dir/test-font.o $build_dir/test-main.o $build_dir/script_iterator.o $build_dir/test-script_iterator.o $build_dir/language.o $build_dir/test-language.o $build_dir/font.o $build_dir/language_iterator.o
+build $build_dir/test: ld $build_dir/text_block.o $build_dir/typesetter.o $build_dir/mini_coretext_typesetter.o $build_dir/gtest-all.o $build_dir/test-typeset.o $build_dir/test-text_block.o $build_dir/test-font.o $build_dir/test-main.o $build_dir/script_iterator.o $build_dir/test-script_iterator.o $build_dir/language.o $build_dir/test-language.o $build_dir/font.o $build_dir/language_iterator.o $build_dir/test-language_iterator.o
 default $build_dir/test
