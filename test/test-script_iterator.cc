@@ -71,6 +71,31 @@ TEST(ScriptIterator, SimpleText) {
   ASSERT_EQ(USCRIPT_HAN, run.script);
   ASSERT_EQ(10, run.start);
   ASSERT_EQ(11, run.end);
+
+
+  u_strFromUTF8(text, kBufferSize, &length, "bあアあ123あ亜亜亜亜あcd", -1, &status);
+  assert(U_SUCCESS(status));
+  it = glyphknit::ScriptIterator{text, length};
+  run = it.FindNextRun();
+  ASSERT_EQ(USCRIPT_LATIN, run.script);
+  ASSERT_EQ(0, run.start);
+  ASSERT_EQ(1, run.end);
+  run = it.FindNextRun();
+  ASSERT_EQ(USCRIPT_KATAKANA, run.script);
+  ASSERT_EQ(1, run.start);
+  ASSERT_EQ(8, run.end);
+  run = it.FindNextRun();
+  ASSERT_EQ(USCRIPT_HAN, run.script);
+  ASSERT_EQ(8, run.start);
+  ASSERT_EQ(12, run.end);
+  run = it.FindNextRun();
+  ASSERT_EQ(USCRIPT_KATAKANA, run.script);
+  ASSERT_EQ(12, run.start);
+  ASSERT_EQ(13, run.end);
+  run = it.FindNextRun();
+  ASSERT_EQ(USCRIPT_LATIN, run.script);
+  ASSERT_EQ(13, run.start);
+  ASSERT_EQ(15, run.end);
 }
 
 TEST(ScriptIterator, SimpleCommonScriptPairing) {

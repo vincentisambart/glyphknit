@@ -1,7 +1,5 @@
 #include "language_iterator.hh"
 
-#include <iostream>
-
 namespace glyphknit {
 
 void LanguageIterator::FindNextScriptRun() {
@@ -12,13 +10,14 @@ void LanguageIterator::FindNextScriptRun() {
 
 // TODO: always use offsets in the full text (in ScriptIterator), not just local ones
 LanguageIterator::Run LanguageIterator::FindNextRun() {
+  auto attributes_run_end = text_block_.attributes_runs().end();
   while (script_run_.start + start_index_ < end_index_) {
-    if (run_start_ >= script_run_.end) {
+    auto script_run_end = script_run_.end + start_index_;
+    if (run_start_ >= script_run_end) {
       FindNextScriptRun();
     }
     auto script_run_start = script_run_.start + start_index_;
-    auto script_run_end = script_run_.end + start_index_;
-    while (attributes_run_it_->end <= script_run_end) {
+    while (attributes_run_it_ != attributes_run_end && attributes_run_it_->end <= script_run_end) {
       auto current_language = attributes_run_it_->attributes.language;
       if (current_language.is_undefined() || !IsScriptUsedForLanguage(script_run_.script, current_language)) {
         current_language = default_language_;
@@ -42,7 +41,7 @@ LanguageIterator::Run LanguageIterator::FindNextRun() {
     }
     if (run_start_ < script_run_end) {
       Language language;
-      if (attributes_run_it_ == text_block_.attributes_runs().end()) {
+      if (attributes_run_it_ == attributes_run_end) {
         language = previous_language_;
       }
       else {

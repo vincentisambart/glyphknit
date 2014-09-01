@@ -44,6 +44,7 @@ TEST(LanguageIterator, SimpleText) {
     ASSERT_EQ(0, run.start);
     ASSERT_EQ(4, run.end);
     ASSERT_EQ(LANG("en"), run.language);
+    ASSERT_EQ(USCRIPT_LATIN, run.script);
   }
 
   {
@@ -54,14 +55,17 @@ TEST(LanguageIterator, SimpleText) {
     ASSERT_EQ(0, run.start);
     ASSERT_EQ(2, run.end);
     ASSERT_EQ(LANG("en"), run.language);
+    ASSERT_EQ(USCRIPT_LATIN, run.script);
     run = it.FindNextRun();
     ASSERT_EQ(2, run.start);
     ASSERT_EQ(3, run.end);
     ASSERT_EQ(LANG("ja"), run.language);
+    ASSERT_EQ(USCRIPT_KATAKANA, run.script);
     run = it.FindNextRun();
     ASSERT_EQ(3, run.start);
     ASSERT_EQ(5, run.end);
     ASSERT_EQ(LANG("en"), run.language);
+    ASSERT_EQ(USCRIPT_LATIN, run.script);
   }
 
   {
@@ -73,6 +77,19 @@ TEST(LanguageIterator, SimpleText) {
     ASSERT_EQ(0, run.start);
     ASSERT_EQ(2, run.end);
     ASSERT_EQ(LANG("ja"), run.language);
+    ASSERT_EQ(USCRIPT_KATAKANA, run.script);
+  }
+
+  {
+    text_block.SetText("ああああ");
+    text_block.SetLanguage(LANG("en"), 0, 2);
+    text_block.SetLanguage(LANG("ja"), 2, 4);
+    auto it = LanguageIterator{text_block, 1, text_block.text_length()-1};
+    auto run = it.FindNextRun();
+    ASSERT_EQ(1, run.start);
+    ASSERT_EQ(3, run.end);
+    ASSERT_EQ(LANG("ja"), run.language);
+    ASSERT_EQ(USCRIPT_KATAKANA, run.script);
   }
 
   {
@@ -84,9 +101,42 @@ TEST(LanguageIterator, SimpleText) {
     ASSERT_EQ(0, run.start);
     ASSERT_EQ(1, run.end);
     ASSERT_EQ(LANG("ja"), run.language);
+    ASSERT_EQ(USCRIPT_HAN, run.script);
     run = it.FindNextRun();
     ASSERT_EQ(1, run.start);
     ASSERT_EQ(2, run.end);
     ASSERT_EQ(LANG("zh"), run.language);
+    ASSERT_EQ(USCRIPT_HAN, run.script);
+  }
+
+  {
+    text_block.SetText("abあアあ123あ亜亜亜亜あcdef");
+    text_block.SetLanguage(LANG("ja"));
+    auto it = LanguageIterator{text_block, 1, text_block.text_length()-2};
+    auto run = it.FindNextRun();
+    ASSERT_EQ(1, run.start);
+    ASSERT_EQ(2, run.end);
+    ASSERT_NE(LANG("ja"), run.language);
+    ASSERT_EQ(USCRIPT_LATIN, run.script);
+    run = it.FindNextRun();
+    ASSERT_EQ(2, run.start);
+    ASSERT_EQ(9, run.end);
+    ASSERT_EQ(LANG("ja"), run.language);
+    ASSERT_EQ(USCRIPT_KATAKANA, run.script);
+    run = it.FindNextRun();
+    ASSERT_EQ(9, run.start);
+    ASSERT_EQ(13, run.end);
+    ASSERT_EQ(LANG("ja"), run.language);
+    ASSERT_EQ(USCRIPT_HAN, run.script);
+    run = it.FindNextRun();
+    ASSERT_EQ(13, run.start);
+    ASSERT_EQ(14, run.end);
+    ASSERT_EQ(LANG("ja"), run.language);
+    ASSERT_EQ(USCRIPT_KATAKANA, run.script);
+    run = it.FindNextRun();
+    ASSERT_EQ(14, run.start);
+    ASSERT_EQ(16, run.end);
+    ASSERT_NE(LANG("ja"), run.language);
+    ASSERT_EQ(USCRIPT_LATIN, run.script);
   }
 }

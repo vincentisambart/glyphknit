@@ -52,7 +52,7 @@ class LanguageIterator {
   };
 
   LanguageIterator(const TextBlock &text_block, ssize_t start_index, ssize_t end_index) :
-      text_block_{text_block}, start_index_{start_index}, end_index_{end_index}, script_iterator_{text_block.text_content() + start_index, end_index - start_index}, attributes_run_it_{text_block_.attributes_runs().begin()}, run_start_{start_index} {
+      text_block_{text_block}, start_index_{start_index}, end_index_{end_index}, script_iterator_{text_block.text_content() + start_index, end_index - start_index}, attributes_run_it_{text_block.attributes_runs().begin()}, run_start_{start_index} {
     while (attributes_run_it_->end < start_index_) {
       ++attributes_run_it_;
     }
