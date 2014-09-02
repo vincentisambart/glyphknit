@@ -55,7 +55,8 @@ static ssize_t CountGraphemeClusters(UBreakIterator *grapheme_cluster_iterator, 
 
 struct TypesettingState {
   hb_buffer_t *hb_buffer;
-  FontDescriptor font_descriptor;
+  FontDescriptor base_font_descriptor;
+  FontDescriptor current_font_descriptor;
   float font_size;
   ssize_t paragraph_start_offset;
   ssize_t paragraph_end_offset;
@@ -75,7 +76,7 @@ void Typesetter::Shape(TypesettingState &state, ssize_t start_offset, ssize_t en
   if (script != USCRIPT_COMMON && script != USCRIPT_INHERITED) {
     hb_buffer_set_script(state.hb_buffer, hb_script_from_string(uscript_getShortName(script), -1));
   }
-  hb_shape(state.font_descriptor.GetHBFont(), state.hb_buffer, nullptr, 0);
+  hb_shape(state.current_font_descriptor.GetHBFont(), state.hb_buffer, nullptr, 0);
 }
 
 ssize_t Typesetter::CountGlyphsThatFit(TypesettingState &state, ssize_t width) {
@@ -209,13 +210,14 @@ void Typesetter::TypesetParagraph(TypesettingState &state) {
       StartNewLine(state);
     }
 
+    int font_fallback_index = 0;
 retry:
+    state.current_font_descriptor = state.base_font_descriptor.GetFallback(font_fallback_index, language_run.language);
     Shape(state, current_start_offset, current_end_offset, language_run.language.opentype_tag, language_run.script);
 
     auto glyphs_count = hb_buffer_get_length(state.hb_buffer);
     auto glyph_infos = hb_buffer_get_glyph_infos(state.hb_buffer, nullptr);
 
-/*
     for (ssize_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
       if (glyph_infos[glyph_index].codepoint == 0) { // no glyph for that character could be found in the font
         if (glyph_infos[glyph_index].cluster == current_start_offset) {
@@ -235,7 +237,6 @@ retry:
       }
     }
     font_fallback_index = 0;
-*/
 
     auto fitting_glyphs_count = CountGlyphsThatFit(state, state.width - state.current_x_position);
 
@@ -304,9 +305,9 @@ void Typesetter::OutputShape(TypesettingState &state) {
   glyphs.resize(glyphs_count);
 
   last_run.font_size = state.font_size;
-  last_run.font_descriptor = state.font_descriptor;
+  last_run.font_descriptor = state.current_font_descriptor;
 
-  const auto upem = hb_face_get_upem(hb_font_get_face(state.font_descriptor.GetHBFont()));
+  const auto upem = hb_face_get_upem(hb_font_get_face(state.current_font_descriptor.GetHBFont()));
 
   ssize_t base_x = state.current_x_position, base_y = 0;
   for (unsigned int glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
@@ -342,7 +343,7 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
 
   TypesettingState state = {
     .hb_buffer = hb_buffer,
-    .font_descriptor = font_descriptor,
+    .base_font_descriptor = font_descriptor,
     .font_size = font_size,
     .text_block = text_block,
     .typeset_lines = typeset_lines,
