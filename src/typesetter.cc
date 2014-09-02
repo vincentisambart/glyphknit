@@ -54,9 +54,9 @@ struct TypesettingState {
   hb_buffer_t *hb_buffer;
   FontDescriptor font_descriptor;
   float font_size;
-  ssize_t  paragraph_start_offset;
-  const uint16_t *paragraph_text;
-  ssize_t paragraph_length;
+  ssize_t paragraph_start_offset;
+  ssize_t paragraph_end_offset;
+  TextBlock &text_block;
   TypesetLines &typeset_lines;
   ssize_t width;
   ssize_t current_x_position;
@@ -66,7 +66,7 @@ struct TypesettingState {
 
 void Typesetter::Shape(TypesettingState &state, ssize_t start_offset, ssize_t end_offset) {
   hb_buffer_clear_contents(state.hb_buffer);
-  hb_buffer_add_utf16(state.hb_buffer, state.paragraph_text, (int)state.paragraph_length, (unsigned int)start_offset, (int)(end_offset-start_offset));
+  hb_buffer_add_utf16(state.hb_buffer, state.text_block.text_content(), (int)state.text_block.text_length(), (unsigned int)start_offset, (int)(end_offset-start_offset));
   hb_buffer_set_direction(state.hb_buffer, HB_DIRECTION_LTR);
   hb_shape(state.font_descriptor.GetHBFont(), state.hb_buffer, nullptr, 0);
 }
@@ -87,7 +87,7 @@ ssize_t Typesetter::CountGlyphsThatFit(TypesettingState &state, ssize_t width) {
       bool at_start_of_cluster = (glyph_index == 0 || glyph_infos[glyph_index-1].cluster != current_glyph_cluster);
       bool at_end_of_cluster = (glyph_index == glyphs_count - 1 || glyph_infos[glyph_index+1].cluster != current_glyph_cluster);
       // u_isWhitespace does not include no-break spaces because they must be handled as non-spacing characters at the end of a line
-      bool width_ignored_if_end_of_line = (at_start_of_cluster && at_end_of_cluster && u_isWhitespace(GetCodepoint(state.paragraph_text, state.paragraph_length, current_glyph_cluster)));
+      bool width_ignored_if_end_of_line = (at_start_of_cluster && at_end_of_cluster && u_isWhitespace(GetCodepoint(state.text_block.text_content(), state.paragraph_end_offset, current_glyph_cluster)));
 
       if (!width_ignored_if_end_of_line && x_position + glyph_positions[glyph_index].x_advance > width) {
         return glyphs_fitting_count;
@@ -109,7 +109,7 @@ ssize_t Typesetter::FindTextOffsetAfterGlyphCluster(const TypesettingState &stat
       return glyph_infos[compared_glyph_index].cluster;
     }
   }
-  return state.paragraph_length;
+  return state.paragraph_end_offset;
 }
 
 void Typesetter::StartNewLine(TypesettingState &state) {
@@ -184,13 +184,13 @@ void Typesetter::NewTypesetParagraph(const uint16_t *paragraph_text, ssize_t par
 
 void Typesetter::TypesetParagraph(TypesettingState &state) {
   UErrorCode status = U_ZERO_ERROR;
-  ubrk_setText(state.line_break_iterator, state.paragraph_text, (int32_t)state.paragraph_length, &status);
+  ubrk_setText(state.line_break_iterator, state.text_block.text_content()+state.paragraph_start_offset, (int32_t)(state.paragraph_end_offset-state.paragraph_start_offset), &status);
   assert(U_SUCCESS(status));
-  ubrk_setText(state.grapheme_cluster_iterator, state.paragraph_text, (int32_t)state.paragraph_length, &status);
+  ubrk_setText(state.grapheme_cluster_iterator, state.text_block.text_content()+state.paragraph_start_offset, (int32_t)(state.paragraph_end_offset-state.paragraph_start_offset), &status);
   assert(U_SUCCESS(status));
 
-  LineIterator line_iterator{state.paragraph_text, 0, state.paragraph_length};
-  for (auto line = line_iterator.FindNext(); line.start < state.paragraph_length; line = line_iterator.FindNext()) {
+  LineIterator line_iterator{state.text_block.text_content(), state.paragraph_start_offset, state.paragraph_end_offset};
+  for (auto line = line_iterator.FindNext(); line.start < state.paragraph_end_offset; line = line_iterator.FindNext()) {
     StartNewLine(state);
     ssize_t current_start_offset = line.start, current_end_offset = line.end;
 
@@ -223,31 +223,31 @@ retry:
 */
 
     auto fitting_glyphs_count = CountGlyphsThatFit(state, state.width - state.current_x_position);
-    auto offset_after_fitting_glyphs = glyph_infos[fitting_glyphs_count].cluster;
 
     ssize_t break_offset;
     if (fitting_glyphs_count == glyphs_count) {
       break_offset = current_end_offset;
     }
     else {
+      auto offset_after_fitting_glyphs = glyph_infos[fitting_glyphs_count].cluster;
       auto offset_after_not_fitting_glyph_cluster = FindTextOffsetAfterGlyphCluster(state, fitting_glyphs_count);
 
       break_offset = offset_after_not_fitting_glyph_cluster;
       do {
-        break_offset = ubrk_preceding(state.line_break_iterator, (int32_t)break_offset);
+        break_offset = ubrk_preceding(state.line_break_iterator, (int32_t)(break_offset-state.paragraph_start_offset)) + state.paragraph_start_offset;
         // ignore line break boundaries that are not at grapheme cluster boundary
         // (for example between space and a combining mark)
-      } while (!ubrk_isBoundary(state.grapheme_cluster_iterator, (int32_t)break_offset));
+      } while (!ubrk_isBoundary(state.grapheme_cluster_iterator, (int32_t)(break_offset-state.paragraph_start_offset)));
 
       if (break_offset <= current_start_offset) {
         // no line break boundary can fit, so we have to cut by grapheme cluster
-        auto grapheme_clusters_count = CountGraphemeClusters(state.grapheme_cluster_iterator, offset_after_fitting_glyphs, offset_after_not_fitting_glyph_cluster);
+        auto grapheme_clusters_count = CountGraphemeClusters(state.grapheme_cluster_iterator, offset_after_fitting_glyphs-state.paragraph_start_offset, offset_after_not_fitting_glyph_cluster-state.paragraph_start_offset) + state.paragraph_start_offset;
         if (grapheme_clusters_count == 1) {
           break_offset = offset_after_fitting_glyphs;
         }
         else {
           // we have to retry shaping with just a part of the glyph cluster as that might fit
-          current_end_offset = ubrk_preceding(state.grapheme_cluster_iterator, (int32_t)offset_after_not_fitting_glyph_cluster);
+          current_end_offset = ubrk_preceding(state.grapheme_cluster_iterator, (int32_t)(offset_after_not_fitting_glyph_cluster-state.paragraph_start_offset));
           goto retry;
         }
       }
@@ -294,7 +294,7 @@ void Typesetter::OutputShape(TypesettingState &state) {
       .x = double(base_x + glyph_pos[glyph_index].x_offset) * state.font_size / upem,
       .y = double(base_y + glyph_pos[glyph_index].y_offset) * state.font_size / upem,
     };
-    glyph.offset = glyph_infos[glyph_index].cluster + state.paragraph_start_offset;
+    glyph.offset = glyph_infos[glyph_index].cluster;
     base_x += glyph_pos[glyph_index].x_advance;
     base_y += glyph_pos[glyph_index].y_advance;
   }
@@ -322,6 +322,7 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
     .hb_buffer = hb_buffer,
     .font_descriptor = font_descriptor,
     .font_size = font_size,
+    .text_block = text_block,
     .typeset_lines = typeset_lines,
     .width = width_in_font_units,
     .line_break_iterator = line_break_iterator_,
@@ -331,8 +332,7 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
   ParagraphIterator paragraph_iterator{text_content, 0, text_length};
   for (auto paragraph = paragraph_iterator.FindNext(); paragraph.start < text_length; paragraph = paragraph_iterator.FindNext()) {
     state.paragraph_start_offset = paragraph.start;
-    state.paragraph_text = text_content + paragraph.start;
-    state.paragraph_length = paragraph.end - paragraph.start;
+    state.paragraph_end_offset = paragraph.end;
     TypesetParagraph(state);
   }
 }
