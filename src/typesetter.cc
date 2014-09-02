@@ -26,11 +26,14 @@
 #include "at_scope_exit.hh"
 #include "autorelease.hh"
 #include "newline.hh"
+#include "language_iterator.hh"
 
 #include <cassert>
 #include <cmath>
 #include <unistd.h>
 #include <iostream>  // for debugging
+
+#include <hb-ot.h>
 
 #include <unicode/brkiter.h>
 
@@ -64,10 +67,14 @@ struct TypesettingState {
   UBreakIterator *grapheme_cluster_iterator;
 };
 
-void Typesetter::Shape(TypesettingState &state, ssize_t start_offset, ssize_t end_offset) {
+void Typesetter::Shape(TypesettingState &state, ssize_t start_offset, ssize_t end_offset, Tag opentype_language_tag, UScriptCode script) {
   hb_buffer_clear_contents(state.hb_buffer);
   hb_buffer_add_utf16(state.hb_buffer, state.text_block.text_content(), (int)state.text_block.text_length(), (unsigned int)start_offset, (int)(end_offset-start_offset));
   hb_buffer_set_direction(state.hb_buffer, HB_DIRECTION_LTR);
+  hb_buffer_set_language(state.hb_buffer, hb_ot_tag_to_language(opentype_language_tag));
+  if (script != USCRIPT_COMMON && script != USCRIPT_INHERITED) {
+    hb_buffer_set_script(state.hb_buffer, hb_script_from_string(uscript_getShortName(script), -1));
+  }
   hb_shape(state.font_descriptor.GetHBFont(), state.hb_buffer, nullptr, 0);
 }
 
@@ -190,12 +197,20 @@ void Typesetter::TypesetParagraph(TypesettingState &state) {
   assert(U_SUCCESS(status));
 
   LineIterator line_iterator{state.text_block.text_content(), state.paragraph_start_offset, state.paragraph_end_offset};
-  for (auto line = line_iterator.FindNext(); line.start < state.paragraph_end_offset; line = line_iterator.FindNext()) {
-    StartNewLine(state);
-    ssize_t current_start_offset = line.start, current_end_offset = line.end;
+  LanguageIterator language_iterator{state.text_block, state.paragraph_start_offset, state.paragraph_end_offset};
+  auto line_run = line_iterator.FindNext();
+  auto language_run = language_iterator.FindNextRun();
+  while (line_run.start < state.paragraph_end_offset && language_run.start < state.paragraph_end_offset) {
+    ssize_t current_run_start = std::max(line_run.start, language_run.start);
+    ssize_t current_run_end = std::min(line_run.end, language_run.end);
+    ssize_t current_start_offset = current_run_start;
+    ssize_t current_end_offset = current_run_end;
+    if (current_start_offset == line_run.start) {
+      StartNewLine(state);
+    }
 
 retry:
-    Shape(state, current_start_offset, current_end_offset);
+    Shape(state, current_start_offset, current_end_offset, language_run.language.opentype_tag, language_run.script);
 
     auto glyphs_count = hb_buffer_get_length(state.hb_buffer);
     auto glyph_infos = hb_buffer_get_glyph_infos(state.hb_buffer, nullptr);
@@ -252,20 +267,27 @@ retry:
         }
       }
       else {
-        assert(break_offset <= offset_after_fitting_glyphs);  // if it is possible to have a line breakable in the middle of a glyph cluster, would have to retry shaping with just a part of the glyph cluster
+        assert(break_offset <= offset_after_fitting_glyphs);  // if it is possible to have a line breakable in the middle of a glyph cluster, we would have to retry shaping with just a part of the glyph cluster
       }
 
       // reshape with the break offset found
-      Shape(state, current_start_offset, break_offset);
+      Shape(state, current_start_offset, break_offset, language_run.language.opentype_tag, language_run.script);
     }
 
     OutputShape(state);
 
-    current_start_offset = break_offset;
-    current_end_offset = line.end;
-    if (current_start_offset < current_end_offset) {
+    if (break_offset < current_run_end) {
+      current_start_offset = break_offset;
+      current_end_offset = current_run_end;
       StartNewLine(state);
       goto retry;
+    }
+
+    if (line_run.end == current_run_end) {
+      line_run = line_iterator.FindNext();
+    }
+    if (language_run.end == current_run_end) {
+      language_run = language_iterator.FindNextRun();
     }
   }
 }
