@@ -11,19 +11,17 @@ void LanguageIterator::FindNextScriptRun() {
 // TODO: always use offsets in the full text (in ScriptIterator), not just local ones
 LanguageIterator::Run LanguageIterator::FindNextRun() {
   auto attributes_run_end = text_block_.attributes_runs().end();
-  while (script_run_.start + start_index_ < end_index_) {
-    auto script_run_end = script_run_.end + start_index_;
-    if (run_start_ >= script_run_end) {
+  while (script_run_.start < end_index_) {
+    if (run_start_ >= script_run_.end) {
       FindNextScriptRun();
     }
-    auto script_run_start = script_run_.start + start_index_;
-    while (attributes_run_it_ != attributes_run_end && attributes_run_it_->end <= script_run_end) {
+    while (attributes_run_it_ != attributes_run_end && attributes_run_it_->end <= script_run_.end) {
       auto current_language = attributes_run_it_->attributes.language;
       if (current_language.is_undefined() || !IsScriptUsedForLanguage(script_run_.script, current_language)) {
         current_language = default_language_;
       }
       if (current_language != previous_language_) {
-        auto run_end = std::max(attributes_run_it_->start, script_run_start);
+        auto run_end = std::max(attributes_run_it_->start, script_run_.start);
         if (run_start_ < run_end) {
           LanguageIterator::Run language_run = {
             .script = script_run_.script,
@@ -39,7 +37,7 @@ LanguageIterator::Run LanguageIterator::FindNextRun() {
       }
       ++attributes_run_it_;
     }
-    if (run_start_ < script_run_end) {
+    if (run_start_ < script_run_.end) {
       Language language;
       if (attributes_run_it_ == attributes_run_end) {
         language = previous_language_;
@@ -54,9 +52,9 @@ LanguageIterator::Run LanguageIterator::FindNextRun() {
         .script = script_run_.script,
         .language = language,
         .start = run_start_,
-        .end = script_run_end,
+        .end = script_run_.end,
       };
-      run_start_ = script_run_end;
+      run_start_ = script_run_.end;
       return language_run;
     }
   }

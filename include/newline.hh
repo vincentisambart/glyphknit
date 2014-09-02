@@ -43,8 +43,8 @@ struct Range {
 
 class LineIterator {
  public:
-  LineIterator(const uint16_t *text, ssize_t length) :
-      text_(text), length_(length), current_offset_(0) {
+  LineIterator(const uint16_t *text, ssize_t start_offset, ssize_t end_offset) :
+      text_{text}, end_offset_{end_offset}, current_offset_{start_offset} {
   }
   static bool IsLineSeparator(UChar32 c) {
     switch (c) {
@@ -59,27 +59,27 @@ class LineIterator {
 
   Range FindNext() {
     auto line_start_offset = current_offset_;
-    while (current_offset_ < length_) {
+    while (current_offset_ < end_offset_) {
       auto codepoint_start_offset = current_offset_;
-      auto c = ConsumeCodepoint(text_, length_, current_offset_);
+      auto c = ConsumeCodepoint(text_, end_offset_, current_offset_);
       if (IsLineSeparator(c)) {
         return {.start = line_start_offset, .end = codepoint_start_offset};
       }
     }
     // the following is for both when where line_start_offset is already at the end of the line and when it's not
-    return {.start = line_start_offset, .end = length_};
+    return {.start = line_start_offset, .end = end_offset_};
   }
 
  private:
   const uint16_t *text_;
-  ssize_t length_;
+  ssize_t end_offset_;
   ssize_t current_offset_;
 };
 
 class ParagraphIterator {
  public:
-  ParagraphIterator(const uint16_t *text, ssize_t length) :
-      text_(text), length_(length), current_offset_(0) {
+  ParagraphIterator(const uint16_t *text, ssize_t start_offset, ssize_t end_offset) :
+      text_{text}, end_offset_{end_offset}, current_offset_{start_offset} {
   }
   // be careful as CR+LF should be handled as a single separator
   static bool IsParagraphSeparator(UChar32 c) {
@@ -96,23 +96,23 @@ class ParagraphIterator {
 
   Range FindNext() {
     auto paragraph_start_offset = current_offset_;
-    while (current_offset_ < length_) {
+    while (current_offset_ < end_offset_) {
       auto codepoint_start_offset = current_offset_;
-      auto c = ConsumeCodepoint(text_, length_, current_offset_);
+      auto c = ConsumeCodepoint(text_, end_offset_, current_offset_);
       if (IsParagraphSeparator(c)) {
-        if (current_offset_ < length_ && c == '\r' && text_[current_offset_] == '\n') {
+        if (current_offset_ < end_offset_ && c == '\r' && text_[current_offset_] == '\n') {
           ++current_offset_;
         }
         return {.start = paragraph_start_offset, .end = codepoint_start_offset};
       }
     }
     // the following is for both when where paragraph_start_offset is already at the end of the paragraph and when it's not
-    return {.start = paragraph_start_offset, .end = length_};
+    return {.start = paragraph_start_offset, .end = end_offset_};
   }
 
  private:
   const uint16_t *text_;
-  ssize_t length_;
+  ssize_t end_offset_;
   ssize_t current_offset_;
 };
 

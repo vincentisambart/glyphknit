@@ -189,7 +189,7 @@ void Typesetter::TypesetParagraph(TypesettingState &state) {
   ubrk_setText(state.grapheme_cluster_iterator, state.paragraph_text, (int32_t)state.paragraph_length, &status);
   assert(U_SUCCESS(status));
 
-  LineIterator line_iterator{state.paragraph_text, state.paragraph_length};
+  LineIterator line_iterator{state.paragraph_text, 0, state.paragraph_length};
   for (auto line = line_iterator.FindNext(); line.start < state.paragraph_length; line = line_iterator.FindNext()) {
     StartNewLine(state);
     ssize_t current_start_offset = line.start, current_end_offset = line.end;
@@ -328,7 +328,7 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
     .grapheme_cluster_iterator = grapheme_cluster_iterator_,
   };
 
-  ParagraphIterator paragraph_iterator{text_content, text_length};
+  ParagraphIterator paragraph_iterator{text_content, 0, text_length};
   for (auto paragraph = paragraph_iterator.FindNext(); paragraph.start < text_length; paragraph = paragraph_iterator.FindNext()) {
     state.paragraph_start_offset = paragraph.start;
     state.paragraph_text = text_content + paragraph.start;

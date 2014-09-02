@@ -38,8 +38,9 @@ class ScriptIterator {
   };
 
   const uint16_t *text_;
-  ssize_t length_;
-  ssize_t current_index_;
+  ssize_t start_offset_;
+  ssize_t end_offset_;
+  ssize_t current_offset_;
   ssize_t run_start_;
   UScriptCode last_script_;
   static int const kStackSize = 128;
@@ -56,8 +57,8 @@ class ScriptIterator {
     ssize_t start, end;
   };
 
-  ScriptIterator(const uint16_t *text, ssize_t length) :
-      text_(text), length_(length), current_index_(0), run_start_(0), stack_length_(0) {
+  ScriptIterator(const uint16_t *text, ssize_t start_offset, ssize_t end_offset) :
+      text_{text}, start_offset_{start_offset}, end_offset_{end_offset}, current_offset_{start_offset}, run_start_{start_offset}, stack_length_{0} {
     // knowing the first fixed script from the start makes things much easier
     last_script_ = FindNextFixedScript();
   }

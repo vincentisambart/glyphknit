@@ -73,9 +73,9 @@ bool IsScriptFixed(UScriptCode const script) {
 }
 
 UScriptCode ScriptIterator::FindNextFixedScript() const {
-  auto index = current_index_; // do not move the main cursor
-  while (index < length_) {
-    UChar32 const codepoint = ConsumeCodepoint(text_, length_, index);
+  auto offset = current_offset_; // do not move the main cursor
+  while (offset < end_offset_) {
+    UChar32 const codepoint = ConsumeCodepoint(text_, end_offset_, offset);
     UScriptCode const script = GetSimplifiedScript(codepoint);
     if (IsScriptFixed(script)) {
       return script;
@@ -85,15 +85,15 @@ UScriptCode ScriptIterator::FindNextFixedScript() const {
 }
 
 ScriptIterator::Run ScriptIterator::FindNextRun() {
-  if (last_script_ == USCRIPT_COMMON && run_start_ == 0 && length_ > 0) {
+  if (last_script_ == USCRIPT_COMMON && run_start_ == start_offset_ && end_offset_ > start_offset_) {
     // if the text only contains codepoints of script Common or Inherited, only one run
-    current_index_ = run_start_ = length_;
-    return ScriptIterator::Run{.script = USCRIPT_COMMON, .start = 0, .end = length_};
+    current_offset_ = run_start_ = end_offset_;
+    return ScriptIterator::Run{.script = USCRIPT_COMMON, .start = start_offset_, .end = end_offset_};
   }
 
-  while (current_index_ < length_) {
-    auto codepoint_start = current_index_;
-    auto codepoint = ConsumeCodepoint(text_, length_, current_index_);
+  while (current_offset_ < end_offset_) {
+    auto codepoint_start = current_offset_;
+    auto codepoint = ConsumeCodepoint(text_, end_offset_, current_offset_);
     UScriptCode script = GetSimplifiedScript(codepoint);
 
     if (script == USCRIPT_INHERITED) {
@@ -145,12 +145,12 @@ ScriptIterator::Run ScriptIterator::FindNextRun() {
       return run;
     }
   }
-  if (run_start_ == length_) {
-    return ScriptIterator::Run{.script = USCRIPT_INVALID_CODE, .start = length_, .end = length_};
+  if (run_start_ == end_offset_) {
+    return ScriptIterator::Run{.script = USCRIPT_INVALID_CODE, .start = end_offset_, .end = end_offset_};
   }
   else {
-    auto run = ScriptIterator::Run{.script = last_script_, .start = run_start_, .end = length_};
-    run_start_ = length_;
+    auto run = ScriptIterator::Run{.script = last_script_, .start = run_start_, .end = end_offset_};
+    run_start_ = end_offset_;
     return run;
   }
 }
