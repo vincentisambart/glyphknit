@@ -26,7 +26,7 @@
 #include "at_scope_exit.hh"
 #include "autorelease.hh"
 #include "newline.hh"
-#include "language_iterator.hh"
+#include "split_runs.hh"
 
 #include <cassert>
 #include <cmath>
@@ -197,23 +197,16 @@ void Typesetter::TypesetParagraph(TypesettingState &state) {
   ubrk_setText(state.grapheme_cluster_iterator, state.text_block.text_content()+state.paragraph_start_offset, (int32_t)(state.paragraph_end_offset-state.paragraph_start_offset), &status);
   assert(U_SUCCESS(status));
 
-  LineIterator line_iterator{state.text_block.text_content(), state.paragraph_start_offset, state.paragraph_end_offset};
-  LanguageIterator language_iterator{state.text_block, state.paragraph_start_offset, state.paragraph_end_offset};
-  auto line_run = line_iterator.FindNext();
-  auto language_run = language_iterator.FindNextRun();
-  while (line_run.start < state.paragraph_end_offset && language_run.start < state.paragraph_end_offset) {
-    ssize_t current_run_start = std::max(line_run.start, language_run.start);
-    ssize_t current_run_end = std::min(line_run.end, language_run.end);
-    ssize_t current_start_offset = current_run_start;
-    ssize_t current_end_offset = current_run_end;
-    if (current_start_offset == line_run.start) {
-      StartNewLine(state);
-    }
+  StartNewLine(state);
 
+  auto runs = SplitRuns(state.text_block, state.paragraph_start_offset, state.paragraph_end_offset);
+  for (auto &run : runs) {
+    ssize_t current_start_offset = run.start_index;
+    ssize_t current_end_offset = run.end_index;
     int font_fallback_index = 0;
 retry:
-    state.current_font_descriptor = state.base_font_descriptor.GetFallback(font_fallback_index, language_run.language);
-    Shape(state, current_start_offset, current_end_offset, language_run.language.opentype_tag, language_run.script);
+    state.current_font_descriptor = state.base_font_descriptor.GetFallback(font_fallback_index, run.language);
+    Shape(state, current_start_offset, current_end_offset, run.language.opentype_tag, run.script);
 
     auto glyphs_count = hb_buffer_get_length(state.hb_buffer);
     auto glyph_infos = hb_buffer_get_glyph_infos(state.hb_buffer, nullptr);
@@ -272,23 +265,20 @@ retry:
       }
 
       // reshape with the break offset found
-      Shape(state, current_start_offset, break_offset, language_run.language.opentype_tag, language_run.script);
+      Shape(state, current_start_offset, break_offset, run.language.opentype_tag, run.script);
     }
 
     OutputShape(state);
 
-    if (break_offset < current_run_end) {
+    if (break_offset < run.end_index) {
       current_start_offset = break_offset;
-      current_end_offset = current_run_end;
+      current_end_offset = run.end_index;
       StartNewLine(state);
       goto retry;
     }
 
-    if (line_run.end == current_run_end) {
-      line_run = line_iterator.FindNext();
-    }
-    if (language_run.end == current_run_end) {
-      language_run = language_iterator.FindNextRun();
+    if (run.end_of_line) {
+      StartNewLine(state);
     }
   }
 }

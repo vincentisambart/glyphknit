@@ -29,7 +29,6 @@
 #include FT_TRUETYPE_TAGS_H
 #include <CoreFoundation/CoreFoundation.h>
 #include <sys/param.h>
-#include <iostream>  // for debugging
 
 namespace glyphknit {
 

@@ -29,7 +29,6 @@
 
 #include "test.h"
 
-#include <iostream>
 #include <ApplicationServices/ApplicationServices.h>
 
 using glyphknit::MakeAutoReleasedCFRef;

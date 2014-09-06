@@ -27,3 +27,4 @@
 - FontManager is not multithread-safe
 - maybe include Google Test directly in the repository to make building easier.
 - do not use ssize_t everywhere, use size_t in places where the value is not supposed to be negative
+- standardize on either offset or index

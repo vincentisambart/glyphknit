@@ -66,7 +66,7 @@ BidiIterator::Run BidiIterator::FindNextRun() {
       .end = end_offset_,
     };
   }
-  
+
   UBiDiLevel level;
   int32_t end_offset_in_paragraph;
   ubidi_getLogicalRun(bidi_, int32_t(current_offset_ - start_offset_), &end_offset_in_paragraph, &level);
@@ -77,7 +77,7 @@ BidiIterator::Run BidiIterator::FindNextRun() {
     .end = end_offset_of_run,
   };
   current_offset_ = end_offset_of_run;
-  
+
   return run;
 }
 

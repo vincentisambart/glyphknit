@@ -28,7 +28,6 @@
 #include <CoreFoundation/CoreFoundation.h>
 
 #include <cstdio>
-#include <iostream>  // for debugging
 #include <vector>
 
 namespace glyphknit {
@@ -140,7 +139,7 @@ Language FindLanguageCodeAndOpenTypeLanguageTag(const char *language, ssize_t le
 }
 
 bool IsScriptUsedForLanguage(UScriptCode script, Language language) {
-  if (!IsScriptValid(script)) {
+  if (!IsScriptValid(script) || language.is_undefined()) {
     return false;
   }
   if (script == USCRIPT_LATIN && language.opentype_tag == kOpenTypeTagPhoneticTranscription) {

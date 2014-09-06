@@ -22,45 +22,30 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-#ifndef GLYPHKNIT_LANGUAGE_ITERATOR_H_
-#define GLYPHKNIT_LANGUAGE_ITERATOR_H_
+#ifndef GLYPHKNIT_RUN_SPLIT_H_
+#define GLYPHKNIT_RUN_SPLIT_H_
 
-#include "script_iterator.hh"
+#include "language.hh"
 #include "text_block.hh"
 
 namespace glyphknit {
 
-class LanguageIterator {
- private:
-  const TextBlock &text_block_;
-  ssize_t start_index_;
-  ssize_t end_index_;
-  ScriptIterator script_iterator_;
-  ScriptIterator::Run script_run_;
-  std::list<TextAttributesRun>::const_iterator attributes_run_it_;
-  Language previous_language_;
-  Language default_language_;
-  ssize_t run_start_;
+struct TextRun {
+  ssize_t start_index;
+  ssize_t end_index;
 
-  void FindNextScriptRun();
-
- public:
-  struct Run {
-    UScriptCode script;
-    Language language;
-    ssize_t start, end;
-  };
-
-  LanguageIterator(const TextBlock &text_block, ssize_t start_index, ssize_t end_index) :
-      text_block_{text_block}, start_index_{start_index}, end_index_{end_index}, script_iterator_{text_block.text_content(), start_index, end_index}, attributes_run_it_{text_block.attributes_runs().begin()}, run_start_{start_index} {
-    while (attributes_run_it_->end < start_index_) {
-      ++attributes_run_it_;
-    }
-    FindNextScriptRun();
-  }
-  LanguageIterator::Run FindNextRun();
+  UScriptCode script;
+  Language language;
+  bool end_of_line;
 };
+
+typedef std::list<TextRun> ParagraphRuns;
+
+void SplitRunsByLanguage(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index);
+void SplitRunsInLines(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index);
+ParagraphRuns CreateBaseParagraphRuns(ssize_t paragraph_start_index, ssize_t paragraph_end_index);
+ParagraphRuns SplitRuns(const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index);
 
 }
 
-#endif  // GLYPHKNIT_LANGUAGE_ITERATOR_H_
+#endif  // GLYPHKNIT_RUN_SPLIT_H_

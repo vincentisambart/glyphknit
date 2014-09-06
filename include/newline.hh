@@ -41,40 +41,16 @@ struct Range {
   ssize_t start, end;
 };
 
-class LineIterator {
- public:
-  LineIterator(const uint16_t *text, ssize_t start_offset, ssize_t end_offset) :
-      text_{text}, end_offset_{end_offset}, current_offset_{start_offset} {
+inline bool IsLineSeparator(UChar32 c) {
+  switch (c) {
+    case 0x000B: // LINE/VERTICAL TABULATION (VT) \v
+    case 0x000C: // FORM FEED (FF) \f
+    case 0x2028: // LINE SEPARATOR (LS)
+      return true;
+    default:
+      return false;
   }
-  static bool IsLineSeparator(UChar32 c) {
-    switch (c) {
-      case 0x000B: // LINE/VERTICAL TABULATION (VT) \v
-      case 0x000C: // FORM FEED (FF) \f
-      case 0x2028: // LINE SEPARATOR (LS)
-        return true;
-      default:
-        return false;
-    }
-  }
-
-  Range FindNext() {
-    auto line_start_offset = current_offset_;
-    while (current_offset_ < end_offset_) {
-      auto codepoint_start_offset = current_offset_;
-      auto c = ConsumeCodepoint(text_, end_offset_, current_offset_);
-      if (IsLineSeparator(c)) {
-        return {.start = line_start_offset, .end = codepoint_start_offset};
-      }
-    }
-    // the following is for both when where line_start_offset is already at the end of the line and when it's not
-    return {.start = line_start_offset, .end = end_offset_};
-  }
-
- private:
-  const uint16_t *text_;
-  ssize_t end_offset_;
-  ssize_t current_offset_;
-};
+}
 
 class ParagraphIterator {
  public:
