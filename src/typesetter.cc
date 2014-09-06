@@ -125,20 +125,6 @@ void Typesetter::StartNewLine(TypesettingState &state) {
 #if 0
 
 /*
-  Run types:
-  - script
-  - language (based on script)
-  - grapheme cluster
-  - forced line breaks boundaries
-  - possible line break boundaries
-  - font face, font size
-  - bidi
-  TODO:
-  - infered properties (like language, font face) should be saved as attributes (but the original value must also be kept)
-    pb: script (for common/inherited scripts) and so language can change depending on the previous or next characters
-*/
-
-/*
   In fact after the first shaping 2 cases: it fully fits or not.
   If it fits, push it on the line (note that later on backtracking is still possible though so you need to get the last possible line break).
   If it doesn't fit, find up to where it fits and try reshaping (we might end up not using any character of the run on the current line, especially if it's not the first run on the line)
@@ -216,7 +202,7 @@ retry:
               current_end_offset = glyph_infos[glyph_index].cluster;
               break;
             }
-          }  // if all characters had no glyphs, current_end_offset does not need to be changed
+          }  // if no character had any glyph found, current_end_offset does not need to be changed
           ++font_fallback_index;
           goto retry;
         }

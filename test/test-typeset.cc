@@ -162,5 +162,5 @@ TEST(Typesetter, HandlesMultipleFonts) {
   text_block.SetText("abcdefghi abcdefghijklmnopqrst");
   text_block.SetFontSize(30, 15);
 
-  CompareTypesetters(text_block, "font size change is not a break point", ComparisonFlags::kDrawToFiles);
+  CompareTypesetters(text_block, "font size change is not a possible line break", ComparisonFlags::kDrawToFiles);
 }
