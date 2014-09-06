@@ -56,6 +56,7 @@ class FontDescriptor {
  public:
   FontDescriptor() : data_{nullptr} {}
   bool operator ==(const FontDescriptor &) const;
+  bool operator !=(const FontDescriptor &compared_to) const { return !(*this == compared_to); }
   bool is_valid() const { return data_.get() != nullptr; }
   FT_Face GetFTFace() const;
   hb_font_t *GetHBFont() const;
@@ -88,6 +89,10 @@ class FontManager {
 static const float kFontComparisonDelta = 0.015625f;
 inline bool IsFontSizeSimilar(float a, float b) {
   return std::abs(a - b) < kFontComparisonDelta;
+}
+
+inline ssize_t SizeInFontUnits(double size, FontDescriptor font_descriptor, float font_size) {
+  return size_t(double(size) * font_descriptor.GetFTFace()->units_per_EM / font_size);
 }
 
 }

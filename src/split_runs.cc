@@ -44,20 +44,20 @@ class RunSplitter {
   }
 
   template <typename Callback>
-  void RunGoesTo(ssize_t index, Callback c) {
+  void RunGoesTo(ssize_t index, Callback callback) {
     assert(current_run_ != runs_.end());
     while (current_run_->end_index < index) {
-      c(*current_run_);
+      callback(*current_run_);
       ++current_run_;
     }
     if (current_run_->end_index == index) {
-      c(*current_run_);
+      callback(*current_run_);
       ++current_run_;
     }
     else {
       auto new_run = runs_.insert(current_run_, *current_run_);
       new_run->end_index = index;
-      c(*new_run);
+      callback(*new_run);
       current_run_->start_index = index;
     }
   }
@@ -84,14 +84,20 @@ class RunSplitter {
   ParagraphRuns::iterator current_run_;
 };
 
+auto FirstRunAfter(const TextBlock &text_block, ssize_t index) {
+  auto run = text_block.attributes_runs().begin();
+  while (run->end < index) {
+    ++run;
+  }
+  return run;
+}
+
 }
 
 void SplitRunsByLanguage(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
   ScriptIterator script_iterator{text_block.text_content(), paragraph_start_index, paragraph_end_index};
-  auto current_attributes_run = text_block.attributes_runs().begin();
-  while (current_attributes_run->end < paragraph_start_index) {
-    ++current_attributes_run;
-  }
+  auto current_attributes_run = FirstRunAfter(text_block, paragraph_start_index);
+  auto attributes_run_end = text_block.attributes_runs().end();
 
   auto run_start = paragraph_start_index;
   RunSplitter splitter{runs};
@@ -99,7 +105,6 @@ void SplitRunsByLanguage(ParagraphRuns &runs, const TextBlock &text_block, ssize
   auto script_run = script_iterator.FindNextRun();
   auto default_language = GuessLanguageFromScript(script_run.script);
   auto previous_language = default_language;
-  auto attributes_run_end = text_block.attributes_runs().end();
 
   while (script_run.start < paragraph_end_index) {
     for (; current_attributes_run != attributes_run_end && current_attributes_run->end <= script_run.end; ++current_attributes_run) {
@@ -147,6 +152,33 @@ void SplitRunsByLanguage(ParagraphRuns &runs, const TextBlock &text_block, ssize
   }
 }
 
+void SplitRunsByFont(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
+  RunSplitter splitter{runs};
+
+  auto current_attributes_run = FirstRunAfter(text_block, paragraph_start_index);
+  auto attributes_run_end = text_block.attributes_runs().end();
+
+  auto font_descriptor = current_attributes_run->attributes.font_descriptor;
+  auto font_size = current_attributes_run->attributes.font_size;
+
+  ++current_attributes_run;
+  for (; current_attributes_run != attributes_run_end && current_attributes_run->end <= paragraph_end_index; ++current_attributes_run) {
+    if (!IsFontSizeSimilar(current_attributes_run->attributes.font_size, font_size)
+        || current_attributes_run->attributes.font_descriptor != font_descriptor) {
+      splitter.RunGoesTo(current_attributes_run->start, [&](auto &run) {
+        run.font_size = font_size;
+        run.font_descriptor = font_descriptor;
+      });
+      font_descriptor = current_attributes_run->attributes.font_descriptor;
+      font_size = current_attributes_run->attributes.font_size;
+    }
+  }
+  splitter.RunGoesTo(paragraph_end_index, [&](auto &run) {
+    run.font_size = font_size;
+    run.font_descriptor = font_descriptor;
+  });
+}
+
 void SplitRunsInLines(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
   RunSplitter splitter{runs};
   const uint16_t *text = text_block.text_content();
@@ -182,6 +214,7 @@ ParagraphRuns SplitRuns(const TextBlock &text_block, ssize_t paragraph_start_ind
   }
 
   SplitRunsByLanguage(runs, text_block, paragraph_start_index, paragraph_end_index);
+  SplitRunsByFont(runs, text_block, paragraph_start_index, paragraph_end_index);
 
   // splitting in lines must be last to be sure runs with end_of_line set to true are not split or thrown away
   SplitRunsInLines(runs, text_block, paragraph_start_index, paragraph_end_index);

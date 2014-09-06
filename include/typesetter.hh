@@ -68,11 +68,11 @@ class Typesetter {
   UBreakIterator *line_break_iterator_;
   UBreakIterator *grapheme_cluster_iterator_;
 
-  void Shape(TypesettingState &state, ssize_t start_offset, ssize_t end_offset, Tag opentype_language_tag, UScriptCode script);
+  void Shape(TypesettingState &state, ssize_t start_offset, ssize_t end_offset, FontDescriptor font_descriptor, Tag opentype_language_tag, UScriptCode script);
   ssize_t CountGlyphsThatFit(TypesettingState &, ssize_t width);
   ssize_t FindTextOffsetAfterGlyphCluster(const TypesettingState &, ssize_t glyph_index);
   void TypesetParagraph(TypesettingState &);
-  void OutputShape(TypesettingState &);
+  void OutputShape(TypesettingState &, FontDescriptor, float font_size);
   void StartNewLine(TypesettingState &);
 };
 

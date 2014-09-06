@@ -37,6 +37,8 @@ struct TextRun {
   UScriptCode script;
   Language language;
   bool end_of_line;
+  FontDescriptor font_descriptor;
+  float font_size;
 };
 
 typedef std::list<TextRun> ParagraphRuns;

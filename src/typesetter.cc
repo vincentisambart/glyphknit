@@ -55,20 +55,17 @@ static ssize_t CountGraphemeClusters(UBreakIterator *grapheme_cluster_iterator, 
 
 struct TypesettingState {
   hb_buffer_t *hb_buffer;
-  FontDescriptor base_font_descriptor;
-  FontDescriptor current_font_descriptor;
-  float font_size;
   ssize_t paragraph_start_offset;
   ssize_t paragraph_end_offset;
   TextBlock &text_block;
   TypesetLines &typeset_lines;
-  ssize_t width;
-  ssize_t current_x_position;
+  double width;
+  double current_x_position;
   UBreakIterator *line_break_iterator;
   UBreakIterator *grapheme_cluster_iterator;
 };
 
-void Typesetter::Shape(TypesettingState &state, ssize_t start_offset, ssize_t end_offset, Tag opentype_language_tag, UScriptCode script) {
+void Typesetter::Shape(TypesettingState &state, ssize_t start_offset, ssize_t end_offset, FontDescriptor font_descriptor, Tag opentype_language_tag, UScriptCode script) {
   hb_buffer_clear_contents(state.hb_buffer);
   hb_buffer_add_utf16(state.hb_buffer, state.text_block.text_content(), (int)state.text_block.text_length(), (unsigned int)start_offset, (int)(end_offset-start_offset));
   hb_buffer_set_direction(state.hb_buffer, HB_DIRECTION_LTR);
@@ -76,7 +73,7 @@ void Typesetter::Shape(TypesettingState &state, ssize_t start_offset, ssize_t en
   if (script != USCRIPT_COMMON && script != USCRIPT_INHERITED) {
     hb_buffer_set_script(state.hb_buffer, hb_script_from_string(uscript_getShortName(script), -1));
   }
-  hb_shape(state.current_font_descriptor.GetHBFont(), state.hb_buffer, nullptr, 0);
+  hb_shape(font_descriptor.GetHBFont(), state.hb_buffer, nullptr, 0);
 }
 
 ssize_t Typesetter::CountGlyphsThatFit(TypesettingState &state, ssize_t width) {
@@ -205,8 +202,8 @@ void Typesetter::TypesetParagraph(TypesettingState &state) {
     ssize_t current_end_offset = run.end_index;
     int font_fallback_index = 0;
 retry:
-    state.current_font_descriptor = state.base_font_descriptor.GetFallback(font_fallback_index, run.language);
-    Shape(state, current_start_offset, current_end_offset, run.language.opentype_tag, run.script);
+    auto font_descriptor = run.font_descriptor.GetFallback(font_fallback_index, run.language);
+    Shape(state, current_start_offset, current_end_offset, font_descriptor, run.language.opentype_tag, run.script);
 
     auto glyphs_count = hb_buffer_get_length(state.hb_buffer);
     auto glyph_infos = hb_buffer_get_glyph_infos(state.hb_buffer, nullptr);
@@ -231,7 +228,9 @@ retry:
     }
     font_fallback_index = 0;
 
-    auto fitting_glyphs_count = CountGlyphsThatFit(state, state.width - state.current_x_position);
+    const ssize_t width_in_font_units = SizeInFontUnits(state.width, font_descriptor, run.font_size);
+    const ssize_t current_x_position_in_font_units = SizeInFontUnits(state.current_x_position, font_descriptor, run.font_size);
+    auto fitting_glyphs_count = CountGlyphsThatFit(state, width_in_font_units - current_x_position_in_font_units);
 
     ssize_t break_offset;
     if (fitting_glyphs_count == glyphs_count) {
@@ -265,10 +264,10 @@ retry:
       }
 
       // reshape with the break offset found
-      Shape(state, current_start_offset, break_offset, run.language.opentype_tag, run.script);
+      Shape(state, current_start_offset, break_offset, font_descriptor, run.language.opentype_tag, run.script);
     }
 
-    OutputShape(state);
+    OutputShape(state, font_descriptor, run.font_size);
 
     if (break_offset < run.end_index) {
       current_start_offset = break_offset;
@@ -283,7 +282,7 @@ retry:
   }
 }
 
-void Typesetter::OutputShape(TypesettingState &state) {
+void Typesetter::OutputShape(TypesettingState &state, FontDescriptor font_descriptor, float font_size) {
   auto glyphs_count = hb_buffer_get_length(state.hb_buffer);
   auto glyph_infos = hb_buffer_get_glyph_infos(state.hb_buffer, nullptr);
   auto glyph_pos = hb_buffer_get_glyph_positions(state.hb_buffer, nullptr);
@@ -294,33 +293,28 @@ void Typesetter::OutputShape(TypesettingState &state) {
   auto &glyphs = last_run.glyphs;
   glyphs.resize(glyphs_count);
 
-  last_run.font_size = state.font_size;
-  last_run.font_descriptor = state.current_font_descriptor;
+  last_run.font_size = font_size;
+  last_run.font_descriptor = font_descriptor;
 
-  const auto upem = hb_face_get_upem(hb_font_get_face(state.current_font_descriptor.GetHBFont()));
+  const auto upem = hb_face_get_upem(hb_font_get_face(font_descriptor.GetHBFont()));
 
-  ssize_t base_x = state.current_x_position, base_y = 0;
+  double start_x = state.current_x_position;
+  ssize_t base_x = 0, base_y = 0;
   for (unsigned int glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
     auto &glyph = glyphs[glyph_index];
     glyph.id = uint16_t(glyph_infos[glyph_index].codepoint);
     glyph.position = {
-      .x = double(base_x + glyph_pos[glyph_index].x_offset) * state.font_size / upem,
-      .y = double(base_y + glyph_pos[glyph_index].y_offset) * state.font_size / upem,
+      .x = start_x + double(base_x + glyph_pos[glyph_index].x_offset) * font_size / upem,
+      .y = double(base_y + glyph_pos[glyph_index].y_offset) * font_size / upem,
     };
     glyph.offset = glyph_infos[glyph_index].cluster;
     base_x += glyph_pos[glyph_index].x_advance;
     base_y += glyph_pos[glyph_index].y_advance;
   }
-  state.current_x_position = base_x;
+  state.current_x_position += double(base_x) * font_size / upem;
 }
 
 void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLines &typeset_lines) {
-  const auto &font_descriptor = text_block.attributes_runs().front().attributes.font_descriptor;  // TODO: iterate over runs
-  auto ft_face = font_descriptor.GetFTFace();
-
-  auto font_size = text_block.attributes_runs().front().attributes.font_size;  // TODO: iterate over runs
-  const ssize_t width_in_font_units = size_t(double(width) * ft_face->units_per_EM / font_size);
-
   auto hb_buffer = hb_buffer_create();
   AT_SCOPE_EXIT([&hb_buffer] {
     hb_buffer_destroy(hb_buffer);
@@ -333,11 +327,9 @@ void Typesetter::PositionGlyphs(TextBlock &text_block, size_t width, TypesetLine
 
   TypesettingState state = {
     .hb_buffer = hb_buffer,
-    .base_font_descriptor = font_descriptor,
-    .font_size = font_size,
     .text_block = text_block,
     .typeset_lines = typeset_lines,
-    .width = width_in_font_units,
+    .width = double(width),
     .line_break_iterator = line_break_iterator_,
     .grapheme_cluster_iterator = grapheme_cluster_iterator_,
   };
