@@ -37,6 +37,7 @@ build $build_dir/text_block.o: cxx $src_dir/text_block.cc
 build $build_dir/typesetter.o: cxx $src_dir/typesetter.cc
 build $build_dir/mini_coretext_typesetter.o: cxx $src_dir/mini_coretext_typesetter.cc
 build $build_dir/script_iterator.o: cxx $src_dir/script_iterator.cc
+build $build_dir/bidi_iterator.o: cxx $src_dir/bidi_iterator.cc
 build $build_dir/language.o: cxx $src_dir/language.cc
 build $build_dir/language_iterator.o: cxx $src_dir/language_iterator.cc
 build $build_dir/font.o: cxx $src_dir/font.cc
