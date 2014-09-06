@@ -26,6 +26,7 @@
 #include "script_iterator.hh"
 #include "utf.hh"
 #include "newline.hh"
+#include "at_scope_exit.hh"
 
 namespace glyphknit {
 
@@ -179,6 +180,32 @@ void SplitRunsByFont(ParagraphRuns &runs, const TextBlock &text_block, ssize_t p
   });
 }
 
+void SplitRunsByDirection(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
+  RunSplitter splitter{runs};
+  int32_t length = int32_t(paragraph_end_index - paragraph_start_index);
+
+  UErrorCode error_code = U_ZERO_ERROR;
+  UBiDi *bidi = ubidi_openSized(length, 0, &error_code);
+  assert(bidi != nullptr && U_SUCCESS(error_code));
+  AT_SCOPE_EXIT([&] {
+    ubidi_close(bidi);
+  });
+
+  ubidi_setPara(bidi, text_block.text_content()+paragraph_start_index, length, UBIDI_DEFAULT_LTR, nullptr, &error_code);
+  assert(U_SUCCESS(error_code));
+
+  ssize_t current_index = paragraph_start_index;
+  while (current_index < paragraph_end_index) {
+    UBiDiLevel bidi_level;
+    int32_t end_index_in_paragraph;
+    ubidi_getLogicalRun(bidi, int32_t(current_index - paragraph_start_index), &end_index_in_paragraph, &bidi_level);
+    current_index = end_index_in_paragraph + paragraph_start_index;
+    splitter.RunGoesTo(current_index, [&](auto &run) {
+      run.bidi_level = bidi_level;
+    });
+  }
+}
+
 void SplitRunsInLines(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
   RunSplitter splitter{runs};
   const uint16_t *text = text_block.text_content();
@@ -215,6 +242,7 @@ ParagraphRuns SplitRuns(const TextBlock &text_block, ssize_t paragraph_start_ind
 
   SplitRunsByLanguage(runs, text_block, paragraph_start_index, paragraph_end_index);
   SplitRunsByFont(runs, text_block, paragraph_start_index, paragraph_end_index);
+  SplitRunsByDirection(runs, text_block, paragraph_start_index, paragraph_end_index);
 
   // splitting in lines must be last to be sure runs with end_of_line set to true are not split or thrown away
   SplitRunsInLines(runs, text_block, paragraph_start_index, paragraph_end_index);

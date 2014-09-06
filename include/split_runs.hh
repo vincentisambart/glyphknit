@@ -27,6 +27,7 @@
 
 #include "language.hh"
 #include "text_block.hh"
+#include <unicode/ubidi.h>
 
 namespace glyphknit {
 
@@ -39,6 +40,7 @@ struct TextRun {
   bool end_of_line;
   FontDescriptor font_descriptor;
   float font_size;
+  UBiDiLevel bidi_level;
 };
 
 typedef std::list<TextRun> ParagraphRuns;
