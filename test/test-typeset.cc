@@ -98,12 +98,8 @@ void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphk
 
 const int kImageWidth = 200;
 const int kImageHeight = 100;
-void SimpleCompare(const char *text, const char *description, const char *font_name, float font_size, int flags = ComparisonFlags::kDefault) {
-  auto font = glyphknit::FontManager::CreateDescriptorFromPostScriptName(font_name);
-  assert(font.is_valid());
-  glyphknit::TextBlock text_block{font, font_size};
-  text_block.SetText(text);
 
+void CompareTypesetters(glyphknit::TextBlock &text_block, const char *description, int flags = ComparisonFlags::kDefault) {
   glyphknit::MiniCoreTextTypesetter ct_typesetter;
   glyphknit::TypesetLines lines_typeset_by_coretext;
   ct_typesetter.PositionGlyphs(text_block, kImageWidth, lines_typeset_by_coretext);
@@ -123,6 +119,15 @@ void SimpleCompare(const char *text, const char *description, const char *font_n
   }
 
   ComparePositions(lines_typeset_by_coretext, lines_typeset_by_glyphknit, description, flags);
+}
+
+void SimpleCompare(const char *text, const char *description, const char *font_name, float font_size, int flags = ComparisonFlags::kDefault) {
+  auto font = glyphknit::FontManager::CreateDescriptorFromPostScriptName(font_name);
+  assert(font.is_valid());
+  glyphknit::TextBlock text_block{font, font_size};
+  text_block.SetText(text);
+
+  CompareTypesetters(text_block, description, flags);
 }
 
 TEST(Typesetter, HandlesSimpleLTRText) {
@@ -148,4 +153,14 @@ TEST(Typesetter, HandlesSimpleLTRText) {
 
 TEST(Typesetter, HandlesFontFallback) {
   SimpleCompare("abcdeあいうえおklmnopqr", "simple text with Japanese not in font", "SourceSansPro-Regular", 13);
+}
+
+TEST(Typesetter, HandlesMultipleFonts) {
+  auto font = glyphknit::FontManager::CreateDescriptorFromPostScriptName("SourceSansPro-Regular");
+  assert(font.is_valid());
+  glyphknit::TextBlock text_block{font, 20};
+  text_block.SetText("abcdefghi abcdefghijklmnopqrst");
+  text_block.SetFontSize(30, 15);
+
+  CompareTypesetters(text_block, "font size change is not a break point", ComparisonFlags::kDrawToFiles);
 }

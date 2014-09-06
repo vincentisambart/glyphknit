@@ -380,7 +380,8 @@ void Typesetter::DrawToContext(TextBlock &text_block, const size_t width, CGCont
         glyph_ids.push_back(glyph.id);
         glyph_positions.push_back(glyph.position);
       }
-      CTFontDrawGlyphs(default_ct_font.get(), glyph_ids.data(), glyph_positions.data(), run.glyphs.size(), context);
+      auto native_font = run.font_descriptor.CreateNativeFont(run.font_size);
+      CTFontDrawGlyphs(native_font.get(), glyph_ids.data(), glyph_positions.data(), run.glyphs.size(), context);
     }
   }
   // TODO: use the ascent/descent/leading from the line, not from the font
