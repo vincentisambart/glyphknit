@@ -105,7 +105,8 @@ void MiniCoreTextTypesetter::DrawToContext(TextBlock &text_block, const size_t w
   });
 }
 
-void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t width, TypesetLines &typeset_lines) {
+TypesetLines MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t width) {
+  TypesetLines typeset_lines;
   Typeset(text_block, width, [&typeset_lines, &text_block](auto frame) {
     auto ct_lines = CTFrameGetLines(frame);
     auto lines_count = CFArrayGetCount(ct_lines);
@@ -149,6 +150,7 @@ void MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const size_t 
       }
     }
   });
+  return typeset_lines;
 }
 
 }

@@ -55,25 +55,24 @@ struct TypesetLine {
 };
 typedef std::vector<TypesetLine> TypesetLines;
 
-struct TypesettingState;
-
 class Typesetter {
  public:
   Typesetter();
   ~Typesetter();
-  void PositionGlyphs(TextBlock &, size_t width, TypesetLines &);
-  void DrawToContext(TextBlock &, size_t width, CGContextRef);
+  TypesetLines PositionGlyphs(TextBlock &, double available_width);
+  void DrawToContext(TextBlock &, size_t available_width, CGContextRef);
 
  private:
   UBreakIterator *line_break_iterator_;
   UBreakIterator *grapheme_cluster_iterator_;
+  hb_buffer_t *hb_buffer_;
 
-  void Shape(TypesettingState &state, ssize_t start_offset, ssize_t end_offset, FontDescriptor font_descriptor, Tag opentype_language_tag, UScriptCode script);
-  ssize_t CountGlyphsThatFit(TypesettingState &, ssize_t width);
-  ssize_t FindTextOffsetAfterGlyphCluster(const TypesettingState &, ssize_t glyph_index);
-  void TypesetParagraph(TypesettingState &);
-  void OutputShape(TypesettingState &, FontDescriptor, float font_size);
-  void StartNewLine(TypesettingState &);
+  void Shape(const TextBlock &, ssize_t start_index, ssize_t end_index, FontDescriptor, Tag opentype_language_tag, UScriptCode);
+  ssize_t CountGlyphsThatFit(const TextBlock &, ssize_t width, ssize_t paragraph_end_index);
+  ssize_t FindTextOffsetAfterGlyphCluster(ssize_t glyph_index, ssize_t paragraph_end_index);
+  TypesetLines TypesetParagraph(const TextBlock &, ssize_t paragraph_start_index, ssize_t paragraph_end_index, double available_width);
+  void OutputShape(TypesetLines &, double &current_text_width, FontDescriptor font_descriptor, float font_size);
+  void StartNewLine(TypesetLines &, double &current_text_width);
 };
 
 }

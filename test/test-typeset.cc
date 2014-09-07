@@ -101,8 +101,7 @@ const int kImageHeight = 100;
 
 void CompareTypesetters(glyphknit::TextBlock &text_block, const char *description, int flags = ComparisonFlags::kDefault) {
   glyphknit::MiniCoreTextTypesetter ct_typesetter;
-  glyphknit::TypesetLines lines_typeset_by_coretext;
-  ct_typesetter.PositionGlyphs(text_block, kImageWidth, lines_typeset_by_coretext);
+  glyphknit::TypesetLines lines_typeset_by_coretext = ct_typesetter.PositionGlyphs(text_block, kImageWidth);
   if (flags & ComparisonFlags::kDrawToFiles) {
     DrawToFile("test-coretext.png", kImageWidth, kImageHeight, [&](CGContextRef context) {
       ct_typesetter.DrawToContext(text_block, kImageWidth, context);
@@ -110,8 +109,7 @@ void CompareTypesetters(glyphknit::TextBlock &text_block, const char *descriptio
   }
 
   glyphknit::Typesetter glyphknit_typesetter;
-  glyphknit::TypesetLines lines_typeset_by_glyphknit;
-  glyphknit_typesetter.PositionGlyphs(text_block, kImageWidth, lines_typeset_by_glyphknit);
+  glyphknit::TypesetLines lines_typeset_by_glyphknit = glyphknit_typesetter.PositionGlyphs(text_block, kImageWidth);
   if (flags & ComparisonFlags::kDrawToFiles) {
     DrawToFile("test-glyphknit.png", kImageWidth, kImageHeight, [&](CGContextRef context) {
       glyphknit_typesetter.DrawToContext(text_block, kImageWidth, context);
