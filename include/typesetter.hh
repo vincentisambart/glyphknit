@@ -72,7 +72,7 @@ class Typesetter {
   ssize_t FindTextOffsetAfterGlyphCluster(ssize_t glyph_index, ssize_t paragraph_end_index);
   TypesetLines TypesetParagraph(const TextBlock &, ssize_t paragraph_start_index, ssize_t paragraph_end_index, double available_width);
   void OutputShape(TypesetLines &, double &current_text_width, FontDescriptor font_descriptor, float font_size);
-  void StartNewLine(TypesetLines &, double &current_text_width);
+  ssize_t PreviousBreak(ssize_t index, ssize_t paragraph_start_index);
 };
 
 }

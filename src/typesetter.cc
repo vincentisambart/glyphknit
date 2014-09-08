@@ -100,11 +100,6 @@ ssize_t Typesetter::FindTextOffsetAfterGlyphCluster(ssize_t glyph_index, ssize_t
   return paragraph_end_index;
 }
 
-void Typesetter::StartNewLine(TypesetLines &typeset_lines, double &current_text_width) {
-  typeset_lines.emplace_back();
-  current_text_width = 0;
-}
-
 #if 0
 
 /*
@@ -156,6 +151,16 @@ void Typesetter::NewTypesetParagraph(const uint16_t *paragraph_text, ssize_t par
 }
 #endif
 
+ssize_t Typesetter::PreviousBreak(ssize_t index, ssize_t paragraph_start_index) {
+  do {
+    index = ubrk_preceding(line_break_iterator_, int32_t(index-paragraph_start_index)) + paragraph_start_index;
+    // ignore line break boundaries that are not at grapheme cluster boundary
+    // (for example between space and a combining mark)
+  } while (!ubrk_isBoundary(grapheme_cluster_iterator_, int32_t(index-paragraph_start_index)));
+  return index;
+}
+
+
 TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index, double available_width) {
   TypesetLines typeset_lines;
   double current_text_width = 0;
@@ -166,14 +171,32 @@ TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t p
   ubrk_setText(grapheme_cluster_iterator_, text_block.text_content()+paragraph_start_index, int32_t(paragraph_end_index-paragraph_start_index), &status);
   assert(U_SUCCESS(status));
 
-  StartNewLine(typeset_lines, current_text_width);
+  bool has_saved_line_break = false;
+  bool saved_at_end_of_run;
+  // TODO: rename ParagraphRuns (as it may look like it's runs of paragraphs even though it's runs inside a paragraph)
+  ParagraphRuns::iterator saved_run;
+  ssize_t saved_start_index;
+  ssize_t saved_line_break_point_index;
+  ssize_t saved_line_runs_size;
+  ssize_t saved_text_width;
+
+  auto StartNewLine = [&]() {
+    typeset_lines.emplace_back();
+    current_text_width = 0;
+    has_saved_line_break = false;
+  };
+
+  StartNewLine();
 
   auto runs = SplitRuns(text_block, paragraph_start_index, paragraph_end_index);
-  for (auto &run : runs) {
-    ssize_t current_start_index = run.start_index;
-    ssize_t current_end_index = run.end_index;
+  auto runs_end = runs.end();
+  for (auto current_run = runs.begin(); current_run != runs_end; ++current_run) {
+    ssize_t current_start_index = current_run->start_index;
+    ssize_t current_end_index = current_run->end_index;
     int font_fallback_index = 0;
-retry:
+reshape_part_of_run:
+    ssize_t previous_text_width = current_text_width;
+    auto &run = *current_run;  // TODO: use directly current_run and remove this reference
     auto font_descriptor = run.font_descriptor.GetFallback(font_fallback_index, run.language);
     Shape(text_block, current_start_index, current_end_index, font_descriptor, run.language.opentype_tag, run.script);
 
@@ -190,7 +213,7 @@ retry:
             }
           }  // if no character had any glyph found, current_end_index does not need to be changed
           ++font_fallback_index;
-          goto retry;
+          goto reshape_part_of_run;
         }
         else {
           current_end_index = glyph_infos[glyph_index].cluster;
@@ -212,14 +235,26 @@ retry:
       auto offset_after_fitting_glyphs = glyph_infos[fitting_glyphs_count].cluster;
       auto offset_after_not_fitting_glyph_cluster = FindTextOffsetAfterGlyphCluster(fitting_glyphs_count, paragraph_end_index);
 
-      break_offset = offset_after_not_fitting_glyph_cluster;
-      do {
-        break_offset = ubrk_preceding(line_break_iterator_, int32_t(break_offset-paragraph_start_index)) + paragraph_start_index;
-        // ignore line break boundaries that are not at grapheme cluster boundary
-        // (for example between space and a combining mark)
-      } while (!ubrk_isBoundary(grapheme_cluster_iterator_, int32_t(break_offset-paragraph_start_index)));
+      break_offset = PreviousBreak(offset_after_not_fitting_glyph_cluster, paragraph_start_index);
 
       if (break_offset <= current_start_index) {
+        if (has_saved_line_break) {
+          has_saved_line_break = false;
+          auto &typeset_line = typeset_lines.back();
+          current_run = saved_run;
+          if (saved_at_end_of_run) {
+            typeset_line.runs.erase(typeset_line.runs.begin()+saved_line_runs_size, typeset_line.runs.end());
+            StartNewLine();
+            continue;
+          }
+          else {
+            typeset_line.runs.erase(typeset_line.runs.begin()+(saved_line_runs_size-1), typeset_line.runs.end());
+            current_start_index = saved_start_index;
+            current_end_index = saved_line_break_point_index;
+            current_text_width = saved_text_width;
+            goto reshape_part_of_run;
+          }
+        }
         // no line break boundary can fit, so we have to cut by grapheme cluster
         auto grapheme_clusters_count = CountGraphemeClusters(grapheme_cluster_iterator_, offset_after_fitting_glyphs-paragraph_start_index, offset_after_not_fitting_glyph_cluster-paragraph_start_index) + paragraph_start_index;
         if (grapheme_clusters_count == 1) {
@@ -228,7 +263,7 @@ retry:
         else {
           // we have to retry shaping with just a part of the glyph cluster as that might fit
           current_end_index = ubrk_preceding(grapheme_cluster_iterator_, int32_t(offset_after_not_fitting_glyph_cluster-paragraph_start_index));
-          goto retry;
+          goto reshape_part_of_run;
         }
       }
       else {
@@ -244,12 +279,34 @@ retry:
     if (break_offset < run.end_index) {
       current_start_index = break_offset;
       current_end_index = run.end_index;
-      StartNewLine(typeset_lines, current_text_width);
-      goto retry;
+      StartNewLine();
+      goto reshape_part_of_run;
     }
 
     if (run.end_of_line) {
-      StartNewLine(typeset_lines, current_text_width);
+      StartNewLine();
+    }
+    else {
+      auto &typeset_line = typeset_lines.back();
+      if (ubrk_isBoundary(line_break_iterator_, int32_t(current_end_index-paragraph_start_index))
+          && ubrk_isBoundary(grapheme_cluster_iterator_, int32_t(current_end_index-paragraph_start_index))) {
+        has_saved_line_break = true;
+        saved_at_end_of_run = true;
+        saved_run = current_run;
+        saved_line_runs_size = typeset_line.runs.size();
+      }
+      else {
+        ssize_t possible_break_index = PreviousBreak(current_end_index, paragraph_start_index);
+        if (possible_break_index > current_start_index && possible_break_index < current_end_index) {
+          has_saved_line_break = true;
+          saved_at_end_of_run = false;
+          saved_run = current_run;
+          saved_start_index = current_start_index;
+          saved_line_break_point_index = possible_break_index;
+          saved_line_runs_size = typeset_line.runs.size();
+          saved_text_width = previous_text_width;
+        }
+      }
     }
   }
 
