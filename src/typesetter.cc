@@ -318,13 +318,14 @@ void Typesetter::DrawToContext(TextBlock &text_block, size_t available_width, CG
   for (auto &line : typeset_lines) {
     total_height += line.height();
   }
-  total_height += typeset_lines.back().descent + 0.5;
+  total_height += typeset_lines.front().descent + 0.5;
   CGContextTranslateCTM(context, 0, total_height);
 
   std::vector<GlyphId> glyph_ids;
   std::vector<GlyphPosition> glyph_positions;
+  auto previous_line = &typeset_lines.front();
   for (auto &line : typeset_lines) {
-    CGContextTranslateCTM(context, 0, -line.height());
+    CGContextTranslateCTM(context, 0, -(previous_line->descent + line.ascent + line.leading));
     for (auto &run : line.runs) {
       glyph_ids.resize(0);
       glyph_positions.resize(0);
@@ -337,6 +338,7 @@ void Typesetter::DrawToContext(TextBlock &text_block, size_t available_width, CG
       auto native_font = run.font_descriptor.CreateNativeFont(run.font_size);
       CTFontDrawGlyphs(native_font.get(), glyph_ids.data(), glyph_positions.data(), run.glyphs.size(), context);
     }
+    previous_line = &line;
   }
 }
 
