@@ -1,11 +1,7 @@
 - make sure the order of parameter respects the Google C++ Style Guide
 - test in both 64 and 32-bit as CGFloat is double in 64-bit and float in 32
-- check why we have to do CGContextTranslateCTM(context, 0, CTFontGetDescent(default_font)+0.5); in the custom typesetter
-- basic layouting to do: (in no particular order)
-  -> bidi
-  -> script splitting
-  -> language detection
-  -> font fallback (font substitution/cascading)
+- check why we have to do +0.5 in CGContextTranslateCTM(context, 0, CTFontGetDescent(default_font)+0.5); in the custom typesetter
+- bidi
 - text container
 - vertical text
 - for tests, use open-source fonts and include them in the repo
@@ -15,16 +11,11 @@
 - http://stackoverflow.com/questions/5511830/how-does-line-spacing-work-in-core-text-and-why-is-it-different-from-nslayoutm#answer-5635981
 - make it possible to use the system's ICU (requires to have code not using the ICU C++ API, you are limited to C)
 - accessibility
-- when cutting in the middle of a ligature, you have to try rendering with the ligature splitted
 - caret handling
-- line breaking should be done by adding little by little, not going back after the last point is found (as it won't work if you mix characters of multiple sizes)
-- make the Core Text typesetter not a full typesetter but just something to compare for the tests
-- the Core Text typesetter should not use TextBlock but just UTF-16 text + font
-- even if the first character of a line is too big we have to still use it, but currently we are doing that for the first character of a run, not of a line
 - refresh the list of preferred languages if the system's list has changed? (using notifications) Not totally sure if it's a good idea though.
 - be able to get list of prefered languages from the PANGO_LANGUAGE or LANGUAGE environment variable. Not needed on OS X (or iOS) but it would allow to test easily if the preferred languages list works properly.
 - preferred_languages won't work properly in multi-thread
 - FontManager is not multithread-safe
 - maybe include Google Test directly in the repository to make building easier.
 - do not use ssize_t everywhere, use size_t in places where the value is not supposed to be negative
-- standardize on either offset or index
+- standardize on either "offset" or "index"
