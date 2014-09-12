@@ -71,6 +71,9 @@ void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphk
   for (size_t line_index = 0; line_index < lines_count; ++line_index) {
     auto &coretext_line = lines_typeset_by_coretext[line_index];
     auto &glyphknit_line = lines_typeset_by_glyphknit[line_index];
+    EXPECT_NEAR(coretext_line.ascent, glyphknit_line.ascent, kAllowedPositionDelta) << "at line " << line_index << " for " << description;
+    EXPECT_NEAR(coretext_line.descent, glyphknit_line.descent, kAllowedPositionDelta) << "at line " << line_index << " for " << description;
+    EXPECT_NEAR(coretext_line.leading, glyphknit_line.leading, kAllowedPositionDelta) << "at line " << line_index << " for " << description;
     EXPECT_EQ(coretext_line.runs.size(), glyphknit_line.runs.size()) << "at line " << line_index << " for " << description;
     size_t runs_count = std::min(coretext_line.runs.size(), glyphknit_line.runs.size());
     for (size_t run_index = 0; run_index < runs_count; ++run_index) {
@@ -171,5 +174,5 @@ TEST(Typesetter, HandlesMultipleFonts) {
   text_block.SetText("abcdefghi abcdefghijklmnopqrst");
   text_block.SetFontSize(30, 15);
 
-  CompareTypesetters(text_block, "font size change is not a possible line break");
+  CompareTypesetters(text_block, "font size change is not a possible line break", ComparisonFlags::kDrawToFiles);
 }

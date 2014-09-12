@@ -91,8 +91,12 @@ inline bool IsFontSizeSimilar(float a, float b) {
   return std::abs(a - b) < kFontComparisonDelta;
 }
 
-inline ssize_t SizeInFontUnits(double size, FontDescriptor font_descriptor, float font_size) {
+inline ssize_t PixelsToFontUnits(double size, FontDescriptor font_descriptor, float font_size) {
   return size_t(double(size) * font_descriptor.GetFTFace()->units_per_EM / font_size);
+}
+
+inline double FontUnitsToPixels(ssize_t size, FontDescriptor font_descriptor, float font_size) {
+  return double(size) * font_size / font_descriptor.GetFTFace()->units_per_EM;
 }
 
 }

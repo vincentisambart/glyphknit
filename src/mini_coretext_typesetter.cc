@@ -115,8 +115,11 @@ TypesetLines MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const
     auto text_length = text_block.text_length();
     for (ssize_t line_index = 0; line_index < lines_count; ++line_index) {
       auto ct_line = static_cast<CTLineRef>(CFArrayGetValueAtIndex(ct_lines, line_index));
-
       auto &generated_line = typeset_lines[line_index];
+      CTLineGetTypographicBounds(ct_line, &generated_line.ascent, &generated_line.descent, &generated_line.leading);
+      generated_line.ascent = std::round(generated_line.ascent);
+      generated_line.descent = std::round(generated_line.descent);
+      generated_line.leading = std::round(generated_line.leading);
 
       auto runs = CTLineGetGlyphRuns(ct_line);
       auto runs_count = CFArrayGetCount(runs);

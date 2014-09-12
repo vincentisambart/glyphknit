@@ -52,6 +52,8 @@ struct TypesetLine {
   CGFloat ascent;
   CGFloat descent;
   CGFloat leading;
+
+  CGFloat height() { return ascent + descent + leading; }
 };
 typedef std::vector<TypesetLine> TypesetLines;
 
