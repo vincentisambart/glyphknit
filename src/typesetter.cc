@@ -100,57 +100,6 @@ ssize_t Typesetter::FindTextOffsetAfterGlyphCluster(ssize_t glyph_index, ssize_t
   return paragraph_end_index;
 }
 
-#if 0
-
-/*
-  In fact after the first shaping 2 cases: it fully fits or not.
-  If it fits, push it on the line (note that later on backtracking is still possible though so you need to get the last possible line break).
-  If it doesn't fit, find up to where it fits and try reshaping (we might end up not using any character of the run on the current line, especially if it's not the first run on the line)
-
-  If some glyphs are 0 (glyph not found in glyph), stop the run just before. If it's the first glyphs of the run, try other fonts
-*/
-
-void Typesetter::NewTypesetParagraph(const uint16_t *paragraph_text, ssize_t paragraph_length) {
-  ScriptIterator script_iterator{paragraph_text, paragraph_length};
-  // TODO: be careful as the LineIterator skips over some characters (line ends), something other iterators won't do
-  LineIterator line_iterator{paragraph_text, paragraph_length};
-
-  auto script_run = script_iterator.FindNextRun();
-  auto line_run = line_iterator.FindNextRun();
-
-  ssize_t run_start = 0;
-  auto run_end = std::min(script_run.start, line_run.start);  // TODO: language_run, font_descriptor_run, font_size_run, bidi_run
-
-  // TODO: be careful for the case where the line breaking point in inside a ligature
-
-  Shape(paragraph_text, run_start, run_end);
-  for (each glyph) {
-    if (too large) {
-      if (glyph only for one grapheme cluster) {
-        if (firstCharacterOfLine) {
-
-        }
-        else {
-          GoBackToSavePoint();
-          StartNextLine();
-        }
-      }
-      else {
-        retry with smaller shape_until_offset if first character or glyph includes line break
-      }
-    }
-    PushGlyph();
-
-    if (possible_line_break) {
-      MakeSavePoint();
-    }
-  }
-  if (font_changed || script_changed || end_of_bidi_run) {
-    MakeSavePoint();
-  }
-}
-#endif
-
 ssize_t Typesetter::PreviousBreak(ssize_t index, ssize_t paragraph_start_index) {
   do {
     index = ubrk_preceding(line_break_iterator_, int32_t(index-paragraph_start_index)) + paragraph_start_index;
@@ -159,7 +108,6 @@ ssize_t Typesetter::PreviousBreak(ssize_t index, ssize_t paragraph_start_index) 
   } while (!ubrk_isBoundary(grapheme_cluster_iterator_, int32_t(index-paragraph_start_index)));
   return index;
 }
-
 
 TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index, double available_width) {
   TypesetLines typeset_lines;
