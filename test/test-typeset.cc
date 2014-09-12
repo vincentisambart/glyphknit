@@ -151,6 +151,17 @@ TEST(Typesetter, HandlesSimpleLTRText) {
 
 TEST(Typesetter, HandlesFontFallback) {
   SimpleCompare("abcdeあいうえおklmnopqr", "simple text with Japanese not in font", "SourceSansPro-Regular", 13);
+
+  auto font = glyphknit::FontManager::CreateDescriptorFromPostScriptName("Helvetica");
+  assert(font.is_valid());
+  glyphknit::TextBlock text_block{font, 20};
+  text_block.SetText("骨");
+  text_block.SetLanguage(glyphknit::FindLanguageCodeAndOpenTypeLanguageTag("zh-Hans"));
+  CompareTypesetters(text_block, "text with language forced to Chinese");
+  text_block.SetLanguage(glyphknit::FindLanguageCodeAndOpenTypeLanguageTag("zh-Hant"));
+  CompareTypesetters(text_block, "text with language forced to Traditional Chinese");
+  text_block.SetLanguage(glyphknit::FindLanguageCodeAndOpenTypeLanguageTag("ja"));
+  CompareTypesetters(text_block, "text with language forced to Japanese");
 }
 
 TEST(Typesetter, HandlesMultipleFonts) {
@@ -160,5 +171,5 @@ TEST(Typesetter, HandlesMultipleFonts) {
   text_block.SetText("abcdefghi abcdefghijklmnopqrst");
   text_block.SetFontSize(30, 15);
 
-  CompareTypesetters(text_block, "font size change is not a possible line break", ComparisonFlags::kDrawToFiles);
+  CompareTypesetters(text_block, "font size change is not a possible line break");
 }
