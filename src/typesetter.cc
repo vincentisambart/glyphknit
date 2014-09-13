@@ -152,6 +152,7 @@ reshape_part_of_run:
     auto glyphs_count = hb_buffer_get_length(hb_buffer_);
     auto glyph_infos = hb_buffer_get_glyph_infos(hb_buffer_, nullptr);
 
+    // font fallback handling
     for (ssize_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
       if (glyph_infos[glyph_index].codepoint == 0) { // no glyph for that character could be found in the font
         if (glyph_infos[glyph_index].cluster == current_start_index) {
@@ -268,7 +269,7 @@ reshape_part_of_run:
     while (run_index < line.runs.size()-1) {
       auto &current_run = line.runs[run_index];
       auto &following_run = line.runs[run_index+1];
-      if (current_run.font_size == following_run.font_size && current_run.font_descriptor == following_run.font_descriptor) {
+      if (IsFontSizeSimilar(current_run.font_size, following_run.font_size) && current_run.font_descriptor == following_run.font_descriptor) {
         current_run.glyphs.insert(current_run.glyphs.end(), following_run.glyphs.begin(), following_run.glyphs.end());
         line.runs.erase(line.runs.begin()+(run_index+1));
       }
