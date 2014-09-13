@@ -3,11 +3,11 @@ gtest_dir = ../../src/googletest
 cxx = clang++
 recent_cxx_flags = -stdlib=libc++ -std=c++1y
 warnings_flags = -Weverything -Wno-c++98-compat -Wno-c99-extensions -Wno-documentation -Wno-documentation-unknown-command -Wno-c++98-compat-pedantic -Wno-padded -Wno-deprecated -Wno-weak-vtables -Wno-missing-prototypes -Wno-sign-conversion
-cppflags = -I$prefix_dir/include -I$prefix_dir/include/harfbuzz -I$prefix_dir/include/freetype2 -I./include -I$gtest_dir/include -DU_USING_ICU_NAMESPACE=0
+cppflags = -I$prefix_dir/include -I$prefix_dir/include/harfbuzz -I$prefix_dir/include/freetype2 -I./include -I$gtest_dir/include -I./vendor/icu -DU_USING_ICU_NAMESPACE=0 -DU_DISABLE_RENAMING=1
 cflags_nowarning = -O2 $cppflags
 cflags = $cflags_nowarning $warnings_flags
 cxxflags = $cflags $recent_cxx_flags
-ldflags = -L$prefix_dir/lib -framework ApplicationServices -licuuc -licudata -lharfbuzz -lfreetype -lpng16 -lz -lbz2
+ldflags = -L$prefix_dir/lib -framework ApplicationServices -licucore -lharfbuzz -lfreetype -lpng16 -lz -lbz2
 build_dir = ./build
 test_dir = ./test
 src_dir = ./src

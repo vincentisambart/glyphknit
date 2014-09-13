@@ -14,9 +14,11 @@ xxxx/configure --enable-biarch-config --enable-static --disable-shared --prefix=
 
 # ICU4C
 xxxx/source/configure --disable-layout --enable-static --disable-shared --prefix=$PREFIX_DIR
+# ICU4C for headers if using the OS version
+xxxx/source/configure --disable-renaming --disable-layout --enable-static --disable-shared --prefix=$PREFIX_DIR/icu-build
 
 # HarfBuzz
-xxxx/configure --with-icu=yes --with-freetype=yes --enable-static --disable-shared --prefix=$PREFIX_DIR
+xxxx/configure --with-freetype=yes --enable-static --disable-shared --prefix=$PREFIX_DIR
 
 # FreeType - rebuilding FreeType so it can use HarfBuzz (probably not really needed though)
 xxxx/configure --enable-biarch-config --enable-static --disable-shared --prefix=$PREFIX_DIR
