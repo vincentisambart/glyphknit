@@ -18,3 +18,5 @@
 - include FreeType, libpng and Harfbuzz, Google Test directly in the repository, and build the whole thing (including Glyphknit) with GYP+ninja
 - do not use ssize_t everywhere, use size_t in places where the value is not supposed to be negative
 - standardize on either "offset" or "index"
+- use UCDN for getting a character's script (as ICU might be a bit old if you use the system's one)
+- be able to load a font by filename
