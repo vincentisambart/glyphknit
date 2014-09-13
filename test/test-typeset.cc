@@ -154,6 +154,7 @@ TEST(Typesetter, HandlesSimpleLTRText) {
 
 TEST(Typesetter, HandlesFontFallback) {
   SimpleCompare("abcdeあいうえおklmnopqr", "simple text with Japanese not in font", "SourceSansPro-Regular", 13);
+  SimpleCompare("abcde あいうえお klmnopqr", "simple text with Japanese not in font with spaces", "SourceSansPro-Regular", 13, ComparisonFlags::kDrawToFiles);
 
   auto font = glyphknit::FontManager::CreateDescriptorFromPostScriptName("Helvetica");
   assert(font.is_valid());
@@ -174,5 +175,5 @@ TEST(Typesetter, HandlesMultipleFonts) {
   text_block.SetText("abcdefghi abcdefghijklmnopqrst");
   text_block.SetFontSize(30, 15);
 
-  CompareTypesetters(text_block, "font size change is not a possible line break", ComparisonFlags::kDrawToFiles);
+  CompareTypesetters(text_block, "font size change is not a possible line break");
 }

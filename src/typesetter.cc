@@ -126,12 +126,14 @@ TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t p
   ssize_t saved_start_index;
   ssize_t saved_line_break_point_index;
   ssize_t saved_line_runs_size;
-  ssize_t saved_text_width;
+  double saved_text_width;
+  bool broke_line = false;
 
   auto StartNewLine = [&]() {
     typeset_lines.emplace_back();
     current_text_width = 0;
     has_saved_line_break = false;
+    broke_line = false;
   };
 
   StartNewLine();
@@ -143,7 +145,7 @@ TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t p
     ssize_t current_end_index = current_run->end_index;
     int font_fallback_index = 0;
 reshape_part_of_run:
-    ssize_t previous_text_width = current_text_width;
+    auto previous_text_width = current_text_width;
     auto font_descriptor = current_run->font_descriptor.GetFallback(font_fallback_index, current_run->language);
     Shape(text_block, current_start_index, current_end_index, font_descriptor, current_run->language.opentype_tag, current_run->script);
 
@@ -164,7 +166,7 @@ reshape_part_of_run:
         }
         else {
           current_end_index = glyph_infos[glyph_index].cluster;
-          break;
+          goto reshape_part_of_run;
         }
       }
     }
@@ -183,6 +185,7 @@ reshape_part_of_run:
       auto offset_after_not_fitting_glyph_cluster = FindTextOffsetAfterGlyphCluster(fitting_glyphs_count, paragraph_end_index);
 
       break_offset = PreviousBreak(offset_after_not_fitting_glyph_cluster, paragraph_start_index);
+      broke_line = true;
 
       if (break_offset <= current_start_index) {
         if (has_saved_line_break) {
@@ -224,9 +227,11 @@ reshape_part_of_run:
     OutputShape(typeset_lines, current_text_width, font_descriptor, current_run->font_size);
 
     if (break_offset < current_run->end_index) {
+      if (broke_line) {
+        StartNewLine();
+      }
       current_start_index = break_offset;
       current_end_index = current_run->end_index;
-      StartNewLine();
       goto reshape_part_of_run;
     }
 
@@ -253,6 +258,22 @@ reshape_part_of_run:
           saved_line_runs_size = typeset_line.runs.size();
           saved_text_width = previous_text_width;
         }
+      }
+    }
+  }
+
+  // if 2 runs have a different script but end up with the same font, we have to merge them
+  for (auto &line : typeset_lines) {
+    ssize_t run_index = 0;
+    while (run_index < line.runs.size()-1) {
+      auto &current_run = line.runs[run_index];
+      auto &following_run = line.runs[run_index+1];
+      if (current_run.font_size == following_run.font_size && current_run.font_descriptor == following_run.font_descriptor) {
+        current_run.glyphs.insert(current_run.glyphs.end(), following_run.glyphs.begin(), following_run.glyphs.end());
+        line.runs.erase(line.runs.begin()+(run_index+1));
+      }
+      else {
+        ++run_index;
       }
     }
   }
