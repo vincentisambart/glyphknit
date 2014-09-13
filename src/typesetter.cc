@@ -119,15 +119,17 @@ TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t p
   ubrk_setText(grapheme_cluster_iterator_, text_block.text_content()+paragraph_start_index, int32_t(paragraph_end_index-paragraph_start_index), &status);
   assert(U_SUCCESS(status));
 
+  bool broke_line = false;
+
   bool has_saved_line_break = false;
-  bool saved_at_end_of_run;
+  // all the saves_xxxx variables below do not need to be initialized but they are to silence the compiler
+  bool saved_at_end_of_run = false;
   // TODO: rename ParagraphRuns (as it may look like it's runs of paragraphs even though it's runs inside a paragraph)
   ParagraphRuns::iterator saved_run;
-  ssize_t saved_start_index;
-  ssize_t saved_line_break_point_index;
-  ssize_t saved_line_runs_size;
-  double saved_text_width;
-  bool broke_line = false;
+  ssize_t saved_start_index = 0;
+  ssize_t saved_line_break_point_index = 0;
+  ssize_t saved_line_runs_size = 0;
+  double saved_text_width = 0;
 
   auto StartNewLine = [&]() {
     typeset_lines.emplace_back();
@@ -265,8 +267,8 @@ reshape_part_of_run:
 
   // if 2 runs have a different script but end up with the same font, we have to merge them
   for (auto &line : typeset_lines) {
-    ssize_t run_index = 0;
-    while (run_index < line.runs.size()-1) {
+    size_t run_index = 0;
+    while (run_index+1 < line.runs.size()) {
       auto &current_run = line.runs[run_index];
       auto &following_run = line.runs[run_index+1];
       if (IsFontSizeSimilar(current_run.font_size, following_run.font_size) && current_run.font_descriptor == following_run.font_descriptor) {
