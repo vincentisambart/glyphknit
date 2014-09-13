@@ -59,9 +59,10 @@ void DrawToFile(const char *file_path, const size_t image_width, const size_t im
 }
 
 enum ComparisonFlags {
-  kDefault = 0,
-  kDrawToFiles = 1,
-  kIgnorePositions = 2,
+  kDefault         = 0,
+  kDrawToFiles     = 1 << 0,
+  kIgnorePositions = 1 << 1,
+  kIgnoreOffsets   = 1 << 2,
 };
 const double kAllowedPositionDelta = 1.0 / 16384.0;
 
@@ -89,7 +90,9 @@ void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphk
         auto &coretext_glyph = coretext_run.glyphs[glyph_index];
         auto &glyphknit_glyph = glyphknit_run.glyphs[glyph_index];
         EXPECT_EQ(coretext_glyph.id, glyphknit_glyph.id) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
-        EXPECT_EQ(coretext_glyph.offset, glyphknit_glyph.offset) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
+        if (!(flags & ComparisonFlags::kIgnoreOffsets)) {
+          EXPECT_EQ(coretext_glyph.offset, glyphknit_glyph.offset) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
+        }
         if (!(flags & ComparisonFlags::kIgnorePositions)) {
           EXPECT_NEAR(coretext_glyph.position.x, glyphknit_glyph.position.x, kAllowedPositionDelta) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
           EXPECT_NEAR(coretext_glyph.position.y, glyphknit_glyph.position.y, kAllowedPositionDelta) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
@@ -143,18 +146,17 @@ TEST(Typesetter, HandlesSimpleLTRText) {
   SimpleCompare("ffff", "simple ligatures", "SourceSansPro-Regular", 50);
 
   // for combining marks the positions don't match but I'm not sure whose fault it is
-  //SimpleCompare(" \u0301\u0301", "space with combining acutes", "SourceSansPro-Regular", 13, ComparisonFlags::kIgnorePositions);
-  //SimpleCompare("e\u0301\u0301", "e with combining acutes", "Arial", 13, ComparisonFlags::kIgnorePositions | ComparisonFlags::kDrawToFiles);
-  //SimpleCompare("abcde\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0abcde", "many non-breaking spaces");
+  SimpleCompare("e\u0301\u0301", "e with combining acutes", "Arial", 20, ComparisonFlags::kIgnorePositions | ComparisonFlags::kIgnoreOffsets);
+  SimpleCompare("abcde\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0abcde", "many non-breaking spaces", "SourceSansPro-Regular", 13);
   SimpleCompare("a                               bcdefghijklmnopqr", "simple text with many spaces and very big font", "SourceSansPro-Regular", 100);
 
   // I don't know why the following test doesn't work with SourceSansPro-Regular, seems to be more of a problem with that font and CoreText
-  //SimpleCompare("a                               bcdefghijklmnopqr", "simple text with many no-break spaces and very big font", "Arial", 100);
+  //SimpleCompare("a                               bcdefghijklmnopqr", "simple text with many no-break spaces and big font", "SourceSansPro-Regular", 50);
 }
 
 TEST(Typesetter, HandlesFontFallback) {
   SimpleCompare("abcdeあいうえおklmnopqr", "simple text with Japanese not in font", "SourceSansPro-Regular", 13);
-  SimpleCompare("abcde あいうえお klmnopqr", "simple text with Japanese not in font with spaces", "SourceSansPro-Regular", 13, ComparisonFlags::kDrawToFiles);
+  SimpleCompare("abcde あいうえお klmnopqr", "simple text with Japanese not in font with spaces", "SourceSansPro-Regular", 13);
 
   auto font = glyphknit::FontManager::CreateDescriptorFromPostScriptName("Helvetica");
   assert(font.is_valid());
