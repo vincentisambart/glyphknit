@@ -70,6 +70,7 @@ ssize_t Typesetter::CountGlyphsThatFit(const TextBlock &text_block, ssize_t widt
   for (ssize_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
     assert(glyph_index == 0 || glyph_infos[glyph_index-1].cluster <= glyph_infos[glyph_index].cluster);  // if it's not the case we need to reorder the clusters just after shaping
 
+// TODO: should be the first glyph of the paragraph, not of a run
     if (glyph_index > 0) {  // the first glyph always fits
       uint32_t current_glyph_cluster = glyph_infos[glyph_index].cluster;
       bool at_start_of_cluster = (glyph_index == 0 || glyph_infos[glyph_index-1].cluster != current_glyph_cluster);
@@ -209,7 +210,7 @@ reshape_part_of_run:
           }
         }
         // no line break boundary can fit, so we have to cut by grapheme cluster
-        auto grapheme_clusters_count = CountGraphemeClusters(grapheme_cluster_iterator_, offset_after_fitting_glyphs-paragraph_start_index, offset_after_not_fitting_glyph_cluster-paragraph_start_index) + paragraph_start_index;
+        auto grapheme_clusters_count = CountGraphemeClusters(grapheme_cluster_iterator_, offset_after_fitting_glyphs-paragraph_start_index, offset_after_not_fitting_glyph_cluster-paragraph_start_index);
         if (grapheme_clusters_count == 1) {
           break_offset = offset_after_fitting_glyphs;
         }

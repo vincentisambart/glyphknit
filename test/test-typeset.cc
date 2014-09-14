@@ -103,7 +103,7 @@ void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphk
 }
 
 const int kImageWidth = 200;
-const int kImageHeight = 100;
+const int kImageHeight = 200;
 
 void CompareTypesetters(glyphknit::TextBlock &text_block, const char *description, int flags = ComparisonFlags::kDefault) {
   glyphknit::MiniCoreTextTypesetter ct_typesetter;
@@ -140,6 +140,7 @@ TEST(Typesetter, HandlesSimpleLTRText) {
   SimpleCompare("abcdefghijklmnopqr abcdefghijklmnopqr", "simple wrapping", "SourceSansPro-Regular", 13);
   SimpleCompare("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", "one very long word", "SourceSansPro-Regular", 13);
   SimpleCompare("abcde                                                                                                                                              abcde", "many spaces", "SourceSansPro-Regular", 13);
+  SimpleCompare("12345\nabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", "2 paragraphs with breaking in the 2nd paragraph", "SourceSansPro-Regular", 13);
 
   SimpleCompare("abcdefghijklmnopqr", "very simple text", "SourceSansPro-Regular", 13);
 
@@ -148,7 +149,7 @@ TEST(Typesetter, HandlesSimpleLTRText) {
   // for combining marks the positions don't match but I'm not sure whose fault it is
   SimpleCompare("e\u0301\u0301", "e with combining acutes", "Arial", 20, ComparisonFlags::kIgnorePositions | ComparisonFlags::kIgnoreOffsets);
   SimpleCompare("abcde\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0abcde", "many non-breaking spaces", "SourceSansPro-Regular", 13);
-  SimpleCompare("a                               bcdefghijklmnopqr", "simple text with many spaces and very big font", "SourceSansPro-Regular", 100);
+  SimpleCompare("a                               bcdefghijklmnopqr", "simple text with many spaces and very big font", "SourceSansPro-Regular", 200);
 
   // I don't know why the following test doesn't work with SourceSansPro-Regular, seems to be more of a problem with that font and CoreText
   //SimpleCompare("a                               bcdefghijklmnopqr", "simple text with many no-break spaces and big font", "SourceSansPro-Regular", 50);
