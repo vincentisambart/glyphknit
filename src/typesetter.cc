@@ -48,10 +48,10 @@ static ssize_t CountGraphemeClusters(UBreakIterator *grapheme_cluster_iterator, 
   return grapheme_clusters_count;
 }
 
-void Typesetter::Shape(const TextBlock &text_block, ssize_t start_index, ssize_t end_index, FontDescriptor font_descriptor, Tag opentype_language_tag, UScriptCode script, UBiDiLevel bidi_level) {
+void Typesetter::Shape(const TextBlock &text_block, ssize_t start_index, ssize_t end_index, FontDescriptor font_descriptor, Tag opentype_language_tag, UScriptCode script, UBiDiDirection bidi_direction) {
   hb_buffer_clear_contents(hb_buffer_);
   hb_buffer_add_utf16(hb_buffer_, text_block.text_content(), int32_t(text_block.text_length()), uint32_t(start_index), int32_t(end_index-start_index));
-  hb_buffer_set_direction(hb_buffer_, (bidi_level & 0x1) == 0 ? HB_DIRECTION_LTR : HB_DIRECTION_RTL);
+  hb_buffer_set_direction(hb_buffer_, bidi_direction == UBIDI_RTL ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
   hb_buffer_set_language(hb_buffer_, hb_ot_tag_to_language(opentype_language_tag));
   if (script != USCRIPT_COMMON && script != USCRIPT_INHERITED) {
     hb_buffer_set_script(hb_buffer_, hb_script_from_string(uscript_getShortName(script), -1));
@@ -171,7 +171,7 @@ TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t p
 reshape_part_of_run:
     auto previous_text_width = current_text_width;
     auto font_descriptor = current_run->font_descriptor.GetFallback(font_fallback_index, current_run->language);
-    Shape(text_block, current_start_index, current_end_index, font_descriptor, current_run->language.opentype_tag, current_run->script, current_run->bidi_level);
+    Shape(text_block, current_start_index, current_end_index, font_descriptor, current_run->language.opentype_tag, current_run->script, current_run->bidi_direction);
 
     auto glyphs_count = hb_buffer_get_length(hb_buffer_);
     auto glyph_infos = hb_buffer_get_glyph_infos(hb_buffer_, nullptr);
@@ -254,7 +254,7 @@ reshape_part_of_run:
       }
 
       // reshape with the break offset found
-      Shape(text_block, current_start_index, break_offset, font_descriptor, current_run->language.opentype_tag, current_run->script, current_run->bidi_level);
+      Shape(text_block, current_start_index, break_offset, font_descriptor, current_run->language.opentype_tag, current_run->script, current_run->bidi_direction);
     }
 
     OutputShape(typeset_lines, current_text_width, font_descriptor, current_run->font_size);

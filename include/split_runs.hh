@@ -40,7 +40,8 @@ struct TextRun {
   bool end_of_line;
   FontDescriptor font_descriptor;
   float font_size;
-  UBiDiLevel bidi_level;
+  UBiDiDirection bidi_direction;
+  int32_t bidi_visual_index;
 };
 
 typedef std::list<TextRun> ListOfRuns;

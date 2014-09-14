@@ -69,6 +69,9 @@ class RunSplitter {
 
   void ThrowAwayUpTo(ssize_t index) {
     assert(current_run_ != runs_.end());
+    if (index == current_run_->start_index) {
+      return;
+    }
     while (current_run_->end_index < index) {
       ++current_run_;
     }
@@ -180,6 +183,10 @@ void SplitRunsByFont(ListOfRuns &runs, const TextBlock &text_block, ssize_t para
   });
 }
 
+struct BidiVisualRun {
+  UBiDiDirection direction;
+  int32_t visual_index, logical_start, length;
+};
 void SplitRunsByDirection(ListOfRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
   RunSplitter splitter{runs};
   int32_t length = int32_t(paragraph_end_index - paragraph_start_index);
@@ -194,14 +201,32 @@ void SplitRunsByDirection(ListOfRuns &runs, const TextBlock &text_block, ssize_t
   ubidi_setPara(bidi, text_block.text_content()+paragraph_start_index, length, UBIDI_DEFAULT_LTR, nullptr, &error_code);
   assert(U_SUCCESS(error_code));
 
-  ssize_t current_index = paragraph_start_index;
-  while (current_index < paragraph_end_index) {
-    UBiDiLevel bidi_level;
-    int32_t end_index_in_paragraph;
-    ubidi_getLogicalRun(bidi, int32_t(current_index - paragraph_start_index), &end_index_in_paragraph, &bidi_level);
-    current_index = end_index_in_paragraph + paragraph_start_index;
-    splitter.RunGoesTo(current_index, [&](auto &run) {
-      run.bidi_level = bidi_level;
+  auto paragraph_direction = ubidi_getDirection(bidi);
+  if (paragraph_direction != UBIDI_MIXED) {
+    splitter.RunGoesTo(paragraph_end_index, [=](auto &run) {
+      run.bidi_direction = paragraph_direction;
+    });
+    return;
+  }
+
+  auto runs_count = ubidi_countRuns(bidi, &error_code);
+  assert(U_SUCCESS(error_code));
+  std::vector<BidiVisualRun> bidi_runs;
+  bidi_runs.reserve(runs_count);
+  for (int32_t run_index = 0; run_index < runs_count; ++run_index) {
+    BidiVisualRun bidi_run;
+    bidi_run.visual_index = run_index;
+    bidi_run.direction = ubidi_getVisualRun(bidi, bidi_run.visual_index, &bidi_run.logical_start, &bidi_run.length);
+    auto insertion_point = std::lower_bound(bidi_runs.begin(), bidi_runs.end(), bidi_run.logical_start, [](const auto &element, const auto &value) {
+      return element.logical_start < value;
+    });
+    bidi_runs.insert(insertion_point, bidi_run);
+  }
+  for (const auto &bidi_run : bidi_runs) {
+    splitter.ThrowAwayUpTo(paragraph_start_index + bidi_run.logical_start);
+    splitter.RunGoesTo(paragraph_start_index + bidi_run.logical_start + bidi_run.length, [&](auto &run) {
+      run.bidi_direction = bidi_run.direction;
+      run.bidi_visual_index = bidi_run.visual_index;
     });
   }
 }
