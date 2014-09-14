@@ -41,7 +41,7 @@ class RunSplitter {
     return *previous_run;
   }
 
-  RunSplitter(ParagraphRuns &runs) : runs_(runs), current_run_{runs.begin()} {
+  RunSplitter(ListOfRuns &runs) : runs_(runs), current_run_{runs.begin()} {
   }
 
   template <typename Callback>
@@ -81,8 +81,8 @@ class RunSplitter {
   }
 
  private:
-  ParagraphRuns &runs_;
-  ParagraphRuns::iterator current_run_;
+  ListOfRuns &runs_;
+  ListOfRuns::iterator current_run_;
 };
 
 auto FirstRunAfter(const TextBlock &text_block, ssize_t index) {
@@ -95,7 +95,7 @@ auto FirstRunAfter(const TextBlock &text_block, ssize_t index) {
 
 }
 
-void SplitRunsByLanguage(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
+void SplitRunsByLanguage(ListOfRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
   ScriptIterator script_iterator{text_block.text_content(), paragraph_start_index, paragraph_end_index};
   auto current_attributes_run = FirstRunAfter(text_block, paragraph_start_index);
   auto attributes_run_end = text_block.attributes_runs().end();
@@ -153,7 +153,7 @@ void SplitRunsByLanguage(ParagraphRuns &runs, const TextBlock &text_block, ssize
   }
 }
 
-void SplitRunsByFont(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
+void SplitRunsByFont(ListOfRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
   RunSplitter splitter{runs};
 
   auto current_attributes_run = FirstRunAfter(text_block, paragraph_start_index);
@@ -180,7 +180,7 @@ void SplitRunsByFont(ParagraphRuns &runs, const TextBlock &text_block, ssize_t p
   });
 }
 
-void SplitRunsByDirection(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
+void SplitRunsByDirection(ListOfRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
   RunSplitter splitter{runs};
   int32_t length = int32_t(paragraph_end_index - paragraph_start_index);
 
@@ -206,7 +206,7 @@ void SplitRunsByDirection(ParagraphRuns &runs, const TextBlock &text_block, ssiz
   }
 }
 
-void SplitRunsInLines(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
+void SplitRunsInLines(ListOfRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
   RunSplitter splitter{runs};
   const uint16_t *text = text_block.text_content();
   auto current_index = paragraph_start_index;
@@ -221,8 +221,8 @@ void SplitRunsInLines(ParagraphRuns &runs, const TextBlock &text_block, ssize_t 
   }
 }
 
-ParagraphRuns CreateBaseParagraphRuns(ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
-  ParagraphRuns runs;
+ListOfRuns CreateBaseListOfRunsForParagraph(ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
+  ListOfRuns runs;
 
   TextRun base_paragraph_run = {
     .start_index = paragraph_start_index,
@@ -234,8 +234,8 @@ ParagraphRuns CreateBaseParagraphRuns(ssize_t paragraph_start_index, ssize_t par
   return runs;
 }
 
-ParagraphRuns SplitRuns(const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
-  auto runs = CreateBaseParagraphRuns(paragraph_start_index, paragraph_end_index);
+ListOfRuns SplitRuns(const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
+  auto runs = CreateBaseListOfRunsForParagraph(paragraph_start_index, paragraph_end_index);
   if (paragraph_start_index == paragraph_end_index) {
     return runs;
   }

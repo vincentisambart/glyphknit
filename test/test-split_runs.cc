@@ -30,8 +30,8 @@ static glyphknit::Language LANG(const char *language) {
   return glyphknit::FindLanguageCodeAndOpenTypeLanguageTag(language);
 }
 
-static glyphknit::ParagraphRuns GenerateRunsByLanguage(const glyphknit::TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
-  auto runs = glyphknit::CreateBaseParagraphRuns(paragraph_start_index, paragraph_end_index);
+static glyphknit::ListOfRuns GenerateRunsByLanguage(const glyphknit::TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index) {
+  auto runs = glyphknit::CreateBaseListOfRunsForParagraph(paragraph_start_index, paragraph_end_index);
   glyphknit::SplitRunsByLanguage(runs, text_block, paragraph_start_index, paragraph_end_index);
   return runs;
 }

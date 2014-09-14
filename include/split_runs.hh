@@ -43,12 +43,12 @@ struct TextRun {
   UBiDiLevel bidi_level;
 };
 
-typedef std::list<TextRun> ParagraphRuns;
+typedef std::list<TextRun> ListOfRuns;
 
-void SplitRunsByLanguage(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index);
-void SplitRunsInLines(ParagraphRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index);
-ParagraphRuns CreateBaseParagraphRuns(ssize_t paragraph_start_index, ssize_t paragraph_end_index);
-ParagraphRuns SplitRuns(const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index);
+void SplitRunsByLanguage(ListOfRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index);
+void SplitRunsInLines(ListOfRuns &runs, const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index);
+ListOfRuns CreateBaseListOfRunsForParagraph(ssize_t paragraph_start_index, ssize_t paragraph_end_index);
+ListOfRuns SplitRuns(const TextBlock &text_block, ssize_t paragraph_start_index, ssize_t paragraph_end_index);
 
 }
 

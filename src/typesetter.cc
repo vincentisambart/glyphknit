@@ -125,8 +125,7 @@ TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t p
   bool has_saved_line_break = false;
   // all the saves_xxxx variables below do not need to be initialized but they are to silence the compiler
   bool saved_at_end_of_run = false;
-  // TODO: rename ParagraphRuns (as it may look like it's runs of paragraphs even though it's runs inside a paragraph)
-  ParagraphRuns::iterator saved_run;
+  ListOfRuns::iterator saved_run;
   ssize_t saved_start_index = 0;
   ssize_t saved_line_break_point_index = 0;
   ssize_t saved_line_runs_size = 0;
@@ -243,6 +242,7 @@ reshape_part_of_run:
       StartNewLine();
     }
     else {
+      // save the last braking point in case we have to go back to it later
       auto &typeset_line = typeset_lines.back();
       if (ubrk_isBoundary(line_break_iterator_, int32_t(current_end_index-paragraph_start_index))
           && ubrk_isBoundary(grapheme_cluster_iterator_, int32_t(current_end_index-paragraph_start_index))) {
