@@ -48,10 +48,10 @@ static ssize_t CountGraphemeClusters(UBreakIterator *grapheme_cluster_iterator, 
   return grapheme_clusters_count;
 }
 
-void Typesetter::Shape(const TextBlock &text_block, ssize_t start_index, ssize_t end_index, FontDescriptor font_descriptor, Tag opentype_language_tag, UScriptCode script) {
+void Typesetter::Shape(const TextBlock &text_block, ssize_t start_index, ssize_t end_index, FontDescriptor font_descriptor, Tag opentype_language_tag, UScriptCode script, UBiDiLevel bidi_level) {
   hb_buffer_clear_contents(hb_buffer_);
   hb_buffer_add_utf16(hb_buffer_, text_block.text_content(), int32_t(text_block.text_length()), uint32_t(start_index), int32_t(end_index-start_index));
-  hb_buffer_set_direction(hb_buffer_, HB_DIRECTION_LTR);
+  hb_buffer_set_direction(hb_buffer_, (bidi_level & 0x1) == 0 ? HB_DIRECTION_LTR : HB_DIRECTION_RTL);
   hb_buffer_set_language(hb_buffer_, hb_ot_tag_to_language(opentype_language_tag));
   if (script != USCRIPT_COMMON && script != USCRIPT_INHERITED) {
     hb_buffer_set_script(hb_buffer_, hb_script_from_string(uscript_getShortName(script), -1));
@@ -63,17 +63,30 @@ ssize_t Typesetter::CountGlyphsThatFit(const TextBlock &text_block, ssize_t widt
   auto glyphs_count = hb_buffer_get_length(hb_buffer_);
   auto glyph_positions = hb_buffer_get_glyph_positions(hb_buffer_, nullptr);
   auto glyph_infos = hb_buffer_get_glyph_infos(hb_buffer_, nullptr);
+  auto direction = hb_buffer_get_direction(hb_buffer_);
 
   ssize_t glyphs_fitting_count = 0;
 
   ssize_t x_position = 0;
-  for (ssize_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
-    assert(glyph_index == 0 || glyph_infos[glyph_index-1].cluster <= glyph_infos[glyph_index].cluster);  // if it's not the case we need to reorder the clusters just after shaping
 
-    if (glyph_index > 0 || !start_of_line) {  // the first glyph of a line always fits
+  for (ssize_t relative_glyph_index = 0; relative_glyph_index < glyphs_count; ++relative_glyph_index) {
+    ssize_t glyph_index, previous_glyph_index, next_glyph_index;
+    if (HB_DIRECTION_IS_FORWARD(direction)) {
+      glyph_index = relative_glyph_index;
+      previous_glyph_index = glyph_index - 1;
+      next_glyph_index = glyph_index + 1;
+    }
+    else {
+      glyph_index = glyphs_count-relative_glyph_index-1;
+      previous_glyph_index = glyph_index + 1;
+      next_glyph_index = glyph_index - 1;
+    }
+    assert(relative_glyph_index == 0 || glyph_infos[previous_glyph_index].cluster <= glyph_infos[glyph_index].cluster);  // if it's not the case we need to reorder the clusters just after shaping
+
+    if (relative_glyph_index > 0 || !start_of_line) {  // the first glyph of a line always fits
       uint32_t current_glyph_cluster = glyph_infos[glyph_index].cluster;
-      bool at_start_of_cluster = (glyph_index == 0 || glyph_infos[glyph_index-1].cluster != current_glyph_cluster);
-      bool at_end_of_cluster = (glyph_index == glyphs_count - 1 || glyph_infos[glyph_index+1].cluster != current_glyph_cluster);
+      bool at_start_of_cluster = (relative_glyph_index == 0 || glyph_infos[previous_glyph_index].cluster != current_glyph_cluster);
+      bool at_end_of_cluster = (relative_glyph_index == glyphs_count - 1 || glyph_infos[next_glyph_index].cluster != current_glyph_cluster);
       // u_isWhitespace does not include no-break spaces because they must be handled as non-spacing characters at the end of a line
       bool width_ignored_if_end_of_line = (at_start_of_cluster && at_end_of_cluster && u_isWhitespace(GetCodepoint(text_block.text_content(), text_block.text_length(), current_glyph_cluster)));
 
@@ -90,11 +103,21 @@ ssize_t Typesetter::CountGlyphsThatFit(const TextBlock &text_block, ssize_t widt
 ssize_t Typesetter::FindTextOffsetAfterGlyphCluster(ssize_t glyph_index, ssize_t paragraph_end_index) {
   auto glyphs_count = hb_buffer_get_length(hb_buffer_);
   auto glyph_infos = hb_buffer_get_glyph_infos(hb_buffer_, nullptr);
+  auto direction = hb_buffer_get_direction(hb_buffer_);
 
   ssize_t glyph_cluster = glyph_infos[glyph_index].cluster;
-  for (ssize_t compared_glyph_index = glyph_index+1; compared_glyph_index < glyphs_count; ++compared_glyph_index) {
-    if (glyph_cluster != glyph_infos[compared_glyph_index].cluster) {
-      return glyph_infos[compared_glyph_index].cluster;
+  if (HB_DIRECTION_IS_FORWARD(direction)) {
+    for (ssize_t compared_glyph_index = glyph_index+1; compared_glyph_index < glyphs_count; ++compared_glyph_index) {
+      if (glyph_cluster != glyph_infos[compared_glyph_index].cluster) {
+        return glyph_infos[compared_glyph_index].cluster;
+      }
+    }
+  }
+  else {
+    for (ssize_t compared_glyph_index = glyph_index-1; compared_glyph_index >= 0; --compared_glyph_index) {
+      if (glyph_cluster != glyph_infos[compared_glyph_index].cluster) {
+        return glyph_infos[compared_glyph_index].cluster;
+      }
     }
   }
   return paragraph_end_index;
@@ -148,10 +171,11 @@ TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t p
 reshape_part_of_run:
     auto previous_text_width = current_text_width;
     auto font_descriptor = current_run->font_descriptor.GetFallback(font_fallback_index, current_run->language);
-    Shape(text_block, current_start_index, current_end_index, font_descriptor, current_run->language.opentype_tag, current_run->script);
+    Shape(text_block, current_start_index, current_end_index, font_descriptor, current_run->language.opentype_tag, current_run->script, current_run->bidi_level);
 
     auto glyphs_count = hb_buffer_get_length(hb_buffer_);
     auto glyph_infos = hb_buffer_get_glyph_infos(hb_buffer_, nullptr);
+    auto direction = hb_buffer_get_direction(hb_buffer_);
 
     // font fallback handling
     for (ssize_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
@@ -183,8 +207,15 @@ reshape_part_of_run:
       break_offset = current_end_index;
     }
     else {
-      auto offset_after_fitting_glyphs = glyph_infos[fitting_glyphs_count].cluster;
-      auto offset_after_not_fitting_glyph_cluster = FindTextOffsetAfterGlyphCluster(fitting_glyphs_count, paragraph_end_index);
+      ssize_t glyph_index_after_fitting_glyphs;
+      if (HB_DIRECTION_IS_FORWARD(direction)) {
+        glyph_index_after_fitting_glyphs = fitting_glyphs_count;
+      }
+      else {
+        glyph_index_after_fitting_glyphs = glyphs_count - fitting_glyphs_count - 1;
+      }
+      ssize_t offset_after_fitting_glyphs = glyph_infos[glyph_index_after_fitting_glyphs].cluster;
+      ssize_t offset_after_not_fitting_glyph_cluster = FindTextOffsetAfterGlyphCluster(glyph_index_after_fitting_glyphs, paragraph_end_index);
 
       break_offset = PreviousBreak(offset_after_not_fitting_glyph_cluster, paragraph_start_index);
       broke_line = true;
@@ -223,7 +254,7 @@ reshape_part_of_run:
       }
 
       // reshape with the break offset found
-      Shape(text_block, current_start_index, break_offset, font_descriptor, current_run->language.opentype_tag, current_run->script);
+      Shape(text_block, current_start_index, break_offset, font_descriptor, current_run->language.opentype_tag, current_run->script, current_run->bidi_level);
     }
 
     OutputShape(typeset_lines, current_text_width, font_descriptor, current_run->font_size);

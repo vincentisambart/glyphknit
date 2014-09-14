@@ -29,6 +29,7 @@
 
 #include <vector>
 #include <unicode/ubrk.h>
+#include <unicode/ubidi.h>
 
 namespace glyphknit {
 
@@ -69,7 +70,7 @@ class Typesetter {
   UBreakIterator *grapheme_cluster_iterator_;
   hb_buffer_t *hb_buffer_;
 
-  void Shape(const TextBlock &, ssize_t start_index, ssize_t end_index, FontDescriptor, Tag opentype_language_tag, UScriptCode);
+  void Shape(const TextBlock &, ssize_t start_index, ssize_t end_index, FontDescriptor, Tag opentype_language_tag, UScriptCode, UBiDiLevel);
   ssize_t CountGlyphsThatFit(const TextBlock &, ssize_t width, bool start_of_line);
   ssize_t FindTextOffsetAfterGlyphCluster(ssize_t glyph_index, ssize_t paragraph_end_index);
   TypesetLines TypesetParagraph(const TextBlock &, ssize_t paragraph_start_index, ssize_t paragraph_end_index, double available_width);

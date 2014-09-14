@@ -155,6 +155,11 @@ TEST(Typesetter, HandlesSimpleLTRText) {
   //SimpleCompare("a                               bcdefghijklmnopqr", "simple text with many no-break spaces and big font", "SourceSansPro-Regular", 50);
 }
 
+TEST(Typesetter, HandlesRTLText) {
+  SimpleCompare("شششششششششزززززززززز", "simple Arabic", "Scheherazade", 20, ComparisonFlags::kDrawToFiles);
+  SimpleCompare("شششششششششششششششششششششششaaaaaaaaaaaaaaaaaaaaaaaaaaaaaششششششششششششششششششششaaaaaaaaaaaaaaaaaaaa", "Arabic and Latin characters mixed", "Scheherazade", 20, ComparisonFlags::kDrawToFiles);
+}
+
 TEST(Typesetter, HandlesFontFallback) {
   SimpleCompare("abcdeあいうえおklmnopqr", "simple text with Japanese not in font", "SourceSansPro-Regular", 13);
   SimpleCompare("abcde あいうえお klmnopqr", "simple text with Japanese not in font with spaces", "SourceSansPro-Regular", 13);
