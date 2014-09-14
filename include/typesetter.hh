@@ -70,7 +70,7 @@ class Typesetter {
   hb_buffer_t *hb_buffer_;
 
   void Shape(const TextBlock &, ssize_t start_index, ssize_t end_index, FontDescriptor, Tag opentype_language_tag, UScriptCode);
-  ssize_t CountGlyphsThatFit(const TextBlock &, ssize_t width, ssize_t paragraph_end_index);
+  ssize_t CountGlyphsThatFit(const TextBlock &, ssize_t width, bool start_of_line);
   ssize_t FindTextOffsetAfterGlyphCluster(ssize_t glyph_index, ssize_t paragraph_end_index);
   TypesetLines TypesetParagraph(const TextBlock &, ssize_t paragraph_start_index, ssize_t paragraph_end_index, double available_width);
   void OutputShape(TypesetLines &, double &current_text_width, FontDescriptor font_descriptor, float font_size);

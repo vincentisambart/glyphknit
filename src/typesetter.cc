@@ -59,7 +59,7 @@ void Typesetter::Shape(const TextBlock &text_block, ssize_t start_index, ssize_t
   hb_shape(font_descriptor.GetHBFont(), hb_buffer_, nullptr, 0);
 }
 
-ssize_t Typesetter::CountGlyphsThatFit(const TextBlock &text_block, ssize_t width, ssize_t paragraph_end_index) {
+ssize_t Typesetter::CountGlyphsThatFit(const TextBlock &text_block, ssize_t width, bool start_of_line) {
   auto glyphs_count = hb_buffer_get_length(hb_buffer_);
   auto glyph_positions = hb_buffer_get_glyph_positions(hb_buffer_, nullptr);
   auto glyph_infos = hb_buffer_get_glyph_infos(hb_buffer_, nullptr);
@@ -70,13 +70,12 @@ ssize_t Typesetter::CountGlyphsThatFit(const TextBlock &text_block, ssize_t widt
   for (ssize_t glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
     assert(glyph_index == 0 || glyph_infos[glyph_index-1].cluster <= glyph_infos[glyph_index].cluster);  // if it's not the case we need to reorder the clusters just after shaping
 
-// TODO: should be the first glyph of the paragraph, not of a run
-    if (glyph_index > 0) {  // the first glyph always fits
+    if (glyph_index > 0 || !start_of_line) {  // the first glyph of a line always fits
       uint32_t current_glyph_cluster = glyph_infos[glyph_index].cluster;
       bool at_start_of_cluster = (glyph_index == 0 || glyph_infos[glyph_index-1].cluster != current_glyph_cluster);
       bool at_end_of_cluster = (glyph_index == glyphs_count - 1 || glyph_infos[glyph_index+1].cluster != current_glyph_cluster);
       // u_isWhitespace does not include no-break spaces because they must be handled as non-spacing characters at the end of a line
-      bool width_ignored_if_end_of_line = (at_start_of_cluster && at_end_of_cluster && u_isWhitespace(GetCodepoint(text_block.text_content(), paragraph_end_index, current_glyph_cluster)));
+      bool width_ignored_if_end_of_line = (at_start_of_cluster && at_end_of_cluster && u_isWhitespace(GetCodepoint(text_block.text_content(), text_block.text_length(), current_glyph_cluster)));
 
       if (!width_ignored_if_end_of_line && x_position + glyph_positions[glyph_index].x_advance > width) {
         return glyphs_fitting_count;
@@ -177,7 +176,7 @@ reshape_part_of_run:
 
     const ssize_t width_in_font_units = PixelsToFontUnits(available_width, font_descriptor, current_run->font_size);
     const ssize_t current_x_position_in_font_units = PixelsToFontUnits(current_text_width, font_descriptor, current_run->font_size);
-    auto fitting_glyphs_count = CountGlyphsThatFit(text_block, width_in_font_units - current_x_position_in_font_units, paragraph_end_index);
+    auto fitting_glyphs_count = CountGlyphsThatFit(text_block, width_in_font_units - current_x_position_in_font_units, current_x_position_in_font_units == 0);
 
     ssize_t break_offset;
     if (fitting_glyphs_count == glyphs_count) {
@@ -266,15 +265,25 @@ reshape_part_of_run:
     }
   }
 
-  // if 2 runs have a different script but end up with the same font, we have to merge them
+  // cleaning up the runs:
+  // - empty runs are removed
+  // - if 2 runs have a different script but end up with the same font, we have to merge them
   for (auto &line : typeset_lines) {
     size_t run_index = 0;
-    while (run_index+1 < line.runs.size()) {
-      auto &current_run = line.runs[run_index];
-      auto &following_run = line.runs[run_index+1];
-      if (IsFontSizeSimilar(current_run.font_size, following_run.font_size) && current_run.font_descriptor == following_run.font_descriptor) {
-        current_run.glyphs.insert(current_run.glyphs.end(), following_run.glyphs.begin(), following_run.glyphs.end());
-        line.runs.erase(line.runs.begin()+(run_index+1));
+    while (run_index < line.runs.size()) {
+      if (line.runs[run_index].glyphs.size() == 0) {
+        line.runs.erase(line.runs.begin()+run_index);
+      }
+      else if (run_index + 1 < line.runs.size()) {
+        auto &current_run = line.runs[run_index];
+        auto &following_run = line.runs[run_index+1];
+        if (IsFontSizeSimilar(current_run.font_size, following_run.font_size) && current_run.font_descriptor == following_run.font_descriptor) {
+          current_run.glyphs.insert(current_run.glyphs.end(), following_run.glyphs.begin(), following_run.glyphs.end());
+          line.runs.erase(line.runs.begin()+(run_index+1));
+        }
+        else {
+          ++run_index;
+        }
       }
       else {
         ++run_index;

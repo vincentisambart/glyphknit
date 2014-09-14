@@ -171,12 +171,16 @@ TEST(Typesetter, HandlesFontFallback) {
   CompareTypesetters(text_block, "text with language forced to Japanese");
 }
 
-TEST(Typesetter, HandlesMultipleFonts) {
+TEST(Typesetter, HandlesMultipleFontSized) {
   auto font = glyphknit::FontManager::CreateDescriptorFromPostScriptName("SourceSansPro-Regular");
   assert(font.is_valid());
   glyphknit::TextBlock text_block{font, 20};
   text_block.SetText("abcdefghi abcdefghijklmnopqrst");
   text_block.SetFontSize(30, 15);
-
   CompareTypesetters(text_block, "font size change is not a possible line break");
+
+  text_block.SetText("abcde");
+  text_block.SetFontSize(70);
+  text_block.SetFontSize(400, 0, 1);
+  CompareTypesetters(text_block, "the first character of a run does not always fit");
 }
