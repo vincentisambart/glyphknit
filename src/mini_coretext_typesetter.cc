@@ -133,7 +133,7 @@ TypesetLines MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const
         auto attributes = CTRunGetAttributes(run);
         CTFontRef font = static_cast<CTFontRef>(CFDictionaryGetValue(attributes, kCTFontAttributeName));
 
-        TypesetRun generated_run{};
+        TypesetRun generated_run;
         generated_run.font_size = float(CTFontGetSize(font));
         generated_run.font_descriptor = FontManager::CreateDescriptorFromNativeFont(font);
         for (ssize_t glyph_index = 0; glyph_index < run_glyphs_count; ++glyph_index) {

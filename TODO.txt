@@ -20,3 +20,4 @@
 - standardize on either "offset" or "index"
 - use UCDN for getting a character's script (as ICU might be a bit old if you use the system's one)
 - be able to load a font by filename
+- do not sort run in line if not needed

@@ -46,6 +46,9 @@ struct TypesetRun {
   FontDescriptor font_descriptor;
   float font_size;
   std::vector<Glyph> glyphs;
+
+  int bidi_visual_index;
+  int bidi_visual_subindex;
 };
 struct TypesetLine {
   std::vector<TypesetRun> runs;
@@ -73,7 +76,7 @@ class Typesetter {
   ssize_t CountGlyphsThatFit(const TextBlock &, ssize_t width, bool start_of_line);
   ssize_t FindTextOffsetAfterGlyphCluster(ssize_t glyph_index, ssize_t paragraph_end_index);
   TypesetLines TypesetParagraph(const TextBlock &, ssize_t paragraph_start_index, ssize_t paragraph_end_index, double available_width);
-  void OutputShape(TypesetLines &, double &current_text_width, FontDescriptor font_descriptor, float font_size);
+  void OutputShape(TypesetLines &, double &current_text_width, FontDescriptor font_descriptor, float font_size, int bidi_visual_index, int bidi_visual_subindex);
   ssize_t PreviousBreak(ssize_t index, ssize_t paragraph_start_index);
 };
 

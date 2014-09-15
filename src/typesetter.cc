@@ -167,6 +167,7 @@ TypesetLines Typesetter::TypesetParagraph(const TextBlock &text_block, ssize_t p
   for (auto current_run = runs.begin(); current_run != runs_end; ++current_run) {
     ssize_t current_start_index = current_run->start_index;
     ssize_t current_end_index = current_run->end_index;
+    int bidi_visual_subindex = (current_run->bidi_direction == UBIDI_RTL ? -1 : 1);
     int font_fallback_index = 0;
 reshape_part_of_run:
     auto previous_text_width = current_text_width;
@@ -257,7 +258,13 @@ reshape_part_of_run:
       Shape(text_block, current_start_index, break_offset, font_descriptor, current_run->language.opentype_tag, current_run->script, current_run->bidi_direction);
     }
 
-    OutputShape(typeset_lines, current_text_width, font_descriptor, current_run->font_size);
+    OutputShape(typeset_lines, current_text_width, font_descriptor, current_run->font_size, current_run->bidi_visual_index, bidi_visual_subindex);
+    if (bidi_visual_subindex < 0) {
+      --bidi_visual_subindex;
+    }
+    else {
+      ++bidi_visual_subindex;
+    }
 
     if (break_offset < current_run->end_index) {
       if (broke_line) {
@@ -296,10 +303,20 @@ reshape_part_of_run:
     }
   }
 
-  // cleaning up the runs:
+  // cleaning up:
+  // - reorder BiDi runs
   // - empty runs are removed
   // - if 2 runs have a different script but end up with the same font, we have to merge them
   for (auto &line : typeset_lines) {
+    std::sort(line.runs.begin(), line.runs.end(), [](const auto &run_a, const auto &run_b) {
+      if (run_a.bidi_visual_index == run_b.bidi_visual_index) {
+        return run_a.bidi_visual_subindex < run_b.bidi_visual_subindex;
+      }
+      else {
+        return run_a.bidi_visual_index < run_b.bidi_visual_index;
+      }
+    });
+
     size_t run_index = 0;
     while (run_index < line.runs.size()) {
       if (line.runs[run_index].glyphs.size() == 0) {
@@ -325,7 +342,7 @@ reshape_part_of_run:
   return typeset_lines;
 }
 
-void Typesetter::OutputShape(TypesetLines &typeset_lines, double &current_text_width, FontDescriptor font_descriptor, float font_size) {
+void Typesetter::OutputShape(TypesetLines &typeset_lines, double &current_text_width, FontDescriptor font_descriptor, float font_size, int bidi_visual_index, int bidi_visual_subindex) {
   auto glyphs_count = hb_buffer_get_length(hb_buffer_);
   auto glyph_infos = hb_buffer_get_glyph_infos(hb_buffer_, nullptr);
   auto glyph_pos = hb_buffer_get_glyph_positions(hb_buffer_, nullptr);
@@ -338,6 +355,9 @@ void Typesetter::OutputShape(TypesetLines &typeset_lines, double &current_text_w
 
   last_run.font_size = font_size;
   last_run.font_descriptor = font_descriptor;
+
+  last_run.bidi_visual_index = bidi_visual_index;
+  last_run.bidi_visual_subindex = bidi_visual_subindex;
 
   auto ft_face = font_descriptor.GetFTFace();
   CGFloat ascent = std::round(FontUnitsToPixels(ft_face->ascender, font_descriptor, font_size));

@@ -203,8 +203,10 @@ void SplitRunsByDirection(ListOfRuns &runs, const TextBlock &text_block, ssize_t
 
   auto paragraph_direction = ubidi_getDirection(bidi);
   if (paragraph_direction != UBIDI_MIXED) {
-    splitter.RunGoesTo(paragraph_end_index, [=](auto &run) {
+    int bidi_visual_index = 0;
+    splitter.RunGoesTo(paragraph_end_index, [&](auto &run) {
       run.bidi_direction = paragraph_direction;
+      run.bidi_visual_index = bidi_visual_index++;
     });
     return;
   }
