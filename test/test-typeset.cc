@@ -70,6 +70,8 @@ void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphk
   ASSERT_EQ(lines_typeset_by_coretext.size(), lines_typeset_by_glyphknit.size()) << "The number of lines should be the same for " << description;
   auto lines_count = lines_typeset_by_glyphknit.size();
   for (size_t line_index = 0; line_index < lines_count; ++line_index) {
+    CGFloat coretext_x_position = 0, coretext_y_position = 0;
+    CGFloat glyphknit_x_position = 0, glyphknit_y_position = 0;
     auto &coretext_line = lines_typeset_by_coretext[line_index];
     auto &glyphknit_line = lines_typeset_by_glyphknit[line_index];
     EXPECT_NEAR(coretext_line.ascent, glyphknit_line.ascent, kAllowedPositionDelta) << "at line " << line_index << " for " << description;
@@ -94,8 +96,12 @@ void ComparePositions(glyphknit::TypesetLines &lines_typeset_by_coretext, glyphk
           EXPECT_EQ(coretext_glyph.offset, glyphknit_glyph.offset) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
         }
         if (!(flags & ComparisonFlags::kIgnorePositions)) {
-          EXPECT_NEAR(coretext_glyph.position.x, glyphknit_glyph.position.x, kAllowedPositionDelta) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
-          EXPECT_NEAR(coretext_glyph.position.y, glyphknit_glyph.position.y, kAllowedPositionDelta) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
+          EXPECT_NEAR(coretext_x_position + coretext_glyph.x_offset, glyphknit_x_position + glyphknit_glyph.x_offset, kAllowedPositionDelta) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
+          EXPECT_NEAR(coretext_y_position + coretext_glyph.y_offset, glyphknit_y_position + glyphknit_glyph.y_offset, kAllowedPositionDelta) << "at glyph " << glyph_index << " at run " << run_index << " at line " << line_index << " for " << description;
+          coretext_x_position += coretext_glyph.x_advance;
+          glyphknit_x_position += glyphknit_glyph.x_advance;
+          coretext_y_position += coretext_glyph.y_advance;
+          glyphknit_y_position += glyphknit_glyph.y_advance;
         }
       }
     }
@@ -149,6 +155,7 @@ TEST(Typesetter, HandlesSimpleLTRText) {
   // for combining marks the positions don't match but I'm not sure whose fault it is
   SimpleCompare("e\u0301\u0301", "e with combining acutes", "Arial", 20, ComparisonFlags::kIgnorePositions | ComparisonFlags::kIgnoreOffsets);
   SimpleCompare("abcde\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0abcde", "many non-breaking spaces", "SourceSansPro-Regular", 13);
+
   SimpleCompare("a                               bcdefghijklmnopqr", "simple text with many spaces and very big font", "SourceSansPro-Regular", 200);
 
   // I don't know why the following test doesn't work with SourceSansPro-Regular, seems to be more of a problem with that font and CoreText
@@ -156,8 +163,8 @@ TEST(Typesetter, HandlesSimpleLTRText) {
 }
 
 TEST(Typesetter, HandlesRTLText) {
-  SimpleCompare("شششششششششزززززززززز", "simple Arabic", "Scheherazade", 20, ComparisonFlags::kDrawToFiles);
-  SimpleCompare("شششششششششششششششششششششششaaaaaaaaaaaaaaaaaaaaaaaaaaaaaششششششششششششششششششششaaaaaaaaaaaaaaaaaaaa", "Arabic and Latin characters mixed", "Scheherazade", 20, ComparisonFlags::kDrawToFiles);
+  SimpleCompare("شششششششششزززززززززز", "simple Arabic", "Scheherazade", 20);
+  SimpleCompare("شششششششششششششششششششششششaaaaaaaaaaaaaaaaaaaaaaaaaaaaaششششششششششششششششششششaaaaaaaaaaaaaaaaaaaa", "Arabic and Latin characters mixed", "Scheherazade", 20);
 }
 
 TEST(Typesetter, HandlesFontFallback) {

@@ -127,8 +127,11 @@ TypesetLines MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const
         auto run = static_cast<CTRunRef>(CFArrayGetValueAtIndex(runs, run_index));
         auto run_glyphs_count = CTRunGetGlyphCount(run);
         auto glyphs = CTRunGetGlyphsPtr(run);
-        auto positions = CTRunGetPositionsPtr(run);
+        assert(glyphs != nullptr);
+        auto advances = CTRunGetAdvancesPtr(run);
+        assert(advances != nullptr);
         auto offsets = CTRunGetStringIndicesPtr(run);
+        assert(offsets != nullptr);
 
         auto attributes = CTRunGetAttributes(run);
         CTFontRef font = static_cast<CTFontRef>(CFDictionaryGetValue(attributes, kCTFontAttributeName));
@@ -143,7 +146,10 @@ TypesetLines MiniCoreTextTypesetter::PositionGlyphs(TextBlock &text_block, const
           }
           generated_run.glyphs.push_back(TypesetRun::Glyph{
             .id = glyphs[glyph_index],
-            .position = positions[glyph_index],
+            .x_offset = 0,
+            .y_offset = 0,
+            .x_advance = advances[glyph_index].width,
+            .y_advance = advances[glyph_index].height,
             .offset = offsets[glyph_index],
           });
         }

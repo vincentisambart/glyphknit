@@ -258,7 +258,7 @@ reshape_part_of_run:
       Shape(text_block, current_start_index, break_offset, font_descriptor, current_run->language.opentype_tag, current_run->script, current_run->bidi_direction);
     }
 
-    OutputShape(typeset_lines, current_text_width, font_descriptor, current_run->font_size, current_run->bidi_visual_index, bidi_visual_subindex);
+    OutputShape(typeset_lines, current_text_width, font_descriptor, current_run->font_size, current_run->bidi_direction, current_run->bidi_visual_index, bidi_visual_subindex);
     if (bidi_visual_subindex < 0) {
       --bidi_visual_subindex;
     }
@@ -325,7 +325,7 @@ reshape_part_of_run:
       else if (run_index + 1 < line.runs.size()) {
         auto &current_run = line.runs[run_index];
         auto &following_run = line.runs[run_index+1];
-        if (IsFontSizeSimilar(current_run.font_size, following_run.font_size) && current_run.font_descriptor == following_run.font_descriptor) {
+        if (current_run.bidi_direction == following_run.bidi_direction && IsFontSizeSimilar(current_run.font_size, following_run.font_size) && current_run.font_descriptor == following_run.font_descriptor) {
           current_run.glyphs.insert(current_run.glyphs.end(), following_run.glyphs.begin(), following_run.glyphs.end());
           line.runs.erase(line.runs.begin()+(run_index+1));
         }
@@ -342,7 +342,7 @@ reshape_part_of_run:
   return typeset_lines;
 }
 
-void Typesetter::OutputShape(TypesetLines &typeset_lines, double &current_text_width, FontDescriptor font_descriptor, float font_size, int bidi_visual_index, int bidi_visual_subindex) {
+void Typesetter::OutputShape(TypesetLines &typeset_lines, double &current_text_width, FontDescriptor font_descriptor, float font_size, UBiDiDirection bidi_direction, int bidi_visual_index, int bidi_visual_subindex) {
   auto glyphs_count = hb_buffer_get_length(hb_buffer_);
   auto glyph_infos = hb_buffer_get_glyph_infos(hb_buffer_, nullptr);
   auto glyph_pos = hb_buffer_get_glyph_positions(hb_buffer_, nullptr);
@@ -356,6 +356,7 @@ void Typesetter::OutputShape(TypesetLines &typeset_lines, double &current_text_w
   last_run.font_size = font_size;
   last_run.font_descriptor = font_descriptor;
 
+  last_run.bidi_direction = bidi_direction;
   last_run.bidi_visual_index = bidi_visual_index;
   last_run.bidi_visual_subindex = bidi_visual_subindex;
 
@@ -367,18 +368,16 @@ void Typesetter::OutputShape(TypesetLines &typeset_lines, double &current_text_w
   last_line.descent = std::max(last_line.descent, descent);
   last_line.leading = std::max(last_line.leading, leading);
 
-  double start_x = current_text_width;
-  ssize_t base_x = 0, base_y = 0;
+  ssize_t base_x = 0;
   for (unsigned int glyph_index = 0; glyph_index < glyphs_count; ++glyph_index) {
     auto &glyph = glyphs[glyph_index];
     glyph.id = uint16_t(glyph_infos[glyph_index].codepoint);
-    glyph.position = {
-      .x = start_x + FontUnitsToPixels(base_x + glyph_pos[glyph_index].x_offset, font_descriptor, font_size),
-      .y = FontUnitsToPixels(base_y + glyph_pos[glyph_index].y_offset, font_descriptor, font_size),
-    };
+    glyph.x_advance = FontUnitsToPixels(glyph_pos[glyph_index].x_advance, font_descriptor, font_size);
+    glyph.y_advance = FontUnitsToPixels(glyph_pos[glyph_index].y_advance, font_descriptor, font_size);
+    glyph.x_offset = FontUnitsToPixels(glyph_pos[glyph_index].x_offset, font_descriptor, font_size);
+    glyph.y_offset = FontUnitsToPixels(glyph_pos[glyph_index].y_offset, font_descriptor, font_size);
     glyph.offset = glyph_infos[glyph_index].cluster;
     base_x += glyph_pos[glyph_index].x_advance;
-    base_y += glyph_pos[glyph_index].y_advance;
   }
   const auto upem = hb_face_get_upem(hb_font_get_face(font_descriptor.GetHBFont()));
   current_text_width += double(base_x) * font_size / upem;
@@ -410,6 +409,8 @@ void Typesetter::DrawToContext(TextBlock &text_block, size_t available_width, CG
   std::vector<GlyphPosition> glyph_positions;
   auto previous_line = &typeset_lines.front();
   for (auto &line : typeset_lines) {
+    CGFloat x = 0;
+    CGFloat y = 0;
     CGContextTranslateCTM(context, 0, -(previous_line->descent + line.ascent + line.leading));
     for (auto &run : line.runs) {
       glyph_ids.resize(0);
@@ -418,7 +419,9 @@ void Typesetter::DrawToContext(TextBlock &text_block, size_t available_width, CG
       glyph_positions.reserve(run.glyphs.size());
       for (auto &glyph : run.glyphs) {
         glyph_ids.push_back(glyph.id);
-        glyph_positions.push_back(glyph.position);
+        glyph_positions.push_back(CGPointMake(x + glyph.x_offset, y + glyph.y_offset));
+        x += glyph.x_advance;
+        y += glyph.y_advance;
       }
       auto native_font = run.font_descriptor.CreateNativeFont(run.font_size);
       CTFontDrawGlyphs(native_font.get(), glyph_ids.data(), glyph_positions.data(), run.glyphs.size(), context);
