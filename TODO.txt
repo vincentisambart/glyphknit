@@ -1,7 +1,7 @@
 - make sure the order of parameter respects the Google C++ Style Guide
 - test in both 64 and 32-bit as CGFloat is double in 64-bit and float in 32
 - do not use CGFloat but something not OS X dependent
-- bidi
+- bidi: test more complex text and align mainly RTL paragraphs right
 - text container
 - vertical text
 - for tests, use open-source fonts and include them in the repo
@@ -20,4 +20,4 @@
 - standardize on either "offset" or "index"
 - use UCDN for getting a character's script (as ICU might be a bit old if you use the system's one)
 - be able to load a font by filename
-- do not sort run in line if not needed
+- do not sort runs of line if not needed

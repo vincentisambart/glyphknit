@@ -2,7 +2,7 @@ prefix_dir = $$HOME/prefix-for-glyphnit
 gtest_dir = ../../src/googletest
 cxx = clang++
 recent_cxx_flags = -stdlib=libc++ -std=c++1y
-warnings_flags = -Weverything -Wno-c++98-compat -Wno-c99-extensions -Wno-documentation -Wno-documentation-unknown-command -Wno-c++98-compat-pedantic -Wno-padded -Wno-deprecated -Wno-weak-vtables -Wno-missing-prototypes -Wno-sign-conversion
+warnings_flags = -Weverything -Wno-c++98-compat -Wno-c99-extensions -Wno-documentation -Wno-documentation-unknown-command -Wno-c++98-compat-pedantic -Wno-padded -Wno-deprecated -Wno-weak-vtables -Wno-missing-prototypes -Wno-sign-conversion -Wno-old-style-cast
 cppflags = -I$prefix_dir/include -I$prefix_dir/include/harfbuzz -I$prefix_dir/include/freetype2 -I./include -I$gtest_dir/include -I./vendor/icu -DU_USING_ICU_NAMESPACE=0 -DU_DISABLE_RENAMING=1
 cflags_nowarning = -O2 $cppflags
 cflags = $cflags_nowarning $warnings_flags
