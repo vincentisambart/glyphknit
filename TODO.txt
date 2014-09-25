@@ -15,7 +15,6 @@
 - be able to get list of prefered languages from the PANGO_LANGUAGE or LANGUAGE environment variable. Not needed on OS X (or iOS) but it would allow to test easily if the preferred languages list works properly.
 - preferred_languages won't work properly in multi-thread
 - FontManager is not multithread-safe
-- include FreeType, libpng and Harfbuzz, Google Test directly in the repository, and build the whole thing (including Glyphknit) with GYP+ninja
 - do not use ssize_t everywhere, use size_t in places where the value is not supposed to be negative
 - standardize on either "offset" or "index"
 - use UCDN for getting a character's script (as ICU might be a bit old if you use the system's one)
