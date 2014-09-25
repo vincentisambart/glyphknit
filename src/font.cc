@@ -184,11 +184,12 @@ static bool FaceContainsTable(FT_Face face, FT_ULong tag) {
 */
 
 FontDescriptor::Data::~Data() {
-  if (ft_face_ != nullptr) {
-    FT_Done_Face(ft_face_);
-  }
+  // be careful: the hb_font_t must be destroyed before destroying the FreeType face
   if (hb_font_ != nullptr) {
     hb_font_destroy(hb_font_);
+  }
+  if (ft_face_ != nullptr) {
+    FT_Done_Face(ft_face_);
   }
 }
 
