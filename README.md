@@ -51,7 +51,6 @@ Requirements
 If you are crazy enough to want to build it you will find below some information to how to do it.
 
 - *[ninja](http://martine.github.io/ninja/)* (the build tool used by example for Chrome). To install it: `brew install ninja`
-- *[ICU4C](http://site.icu-project.org/)*, *[FreeType](http://www.freetype.org/)*, *[HarfBuzz](http://www.freedesktop.org/wiki/Software/HarfBuzz/)*: how-to-build-dependencies.txt quickly explains how I built those. I do have a script to build those for iOS but for the time being most of the development is using a one-architecture build for OS X.
-- *[Google Test](https://code.google.com/p/googletest/)*: Nothing to compile, just checkout its code (http://googletest.googlecode.com/svn/trunk) somewhere on your hard drive and change the path to it in build.ninja.
+- *[CMake](http://www.cmake.org/)*. To install it: `brew install cmake`
 - If you want to regenerate src/script_iterator-pairs.hh, you need a recent version of Ruby (at least 1.9). Ruby 2.0 included in the last OS X works fine. Then just run the script. The needed data files are included in the repository (in data/UCD-7.0.0)
 - If you want to regenerate src/language-data.hh, you also need a recent version of Ruby, but also the Nokogiri gem. To install it just run `gem install nokogiri`. You also need to have a recent version of the [CLDR](http://cldr.unicode.org/index/downloads), [ICU4C](http://site.icu-project.org/repository), and [lang-ietf-opentype](https://github.com/jclark/lang-ietf-opentype) repositories. I am using the very last trunk of all of them to generate src/language-data.hh so you probably don't need to do it yourself.

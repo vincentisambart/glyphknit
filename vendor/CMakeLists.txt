@@ -41,3 +41,8 @@ add_library(harfbuzz STATIC
 target_compile_definitions(harfbuzz PRIVATE -DHAVE_OT -DHAVE_FREETYPE -DHAVE_ICU -DHAVE_ICU_BUILTIN)
 target_include_directories(harfbuzz INTERFACE ${harfbuzz-source-directory})
 target_link_libraries(harfbuzz icucore freetype)
+
+set(gtest-version trunk)
+set(gtest-source-directory "gtest-${gtest-version}")
+add_subdirectory(${gtest-source-directory})
+target_include_directories(freetype INTERFACE ${gtest-source-directory}/include)

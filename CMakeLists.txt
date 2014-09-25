@@ -31,10 +31,6 @@ find_library(APPLICATION_SERVICES_FRAMEWORK ApplicationServices)
 target_link_libraries(glyphknit ${APPLICATION_SERVICES_FRAMEWORK} icucore harfbuzz freetype)
 target_compile_options(glyphknit PRIVATE ${warning-flags})
 
-add_library(gtest STATIC ${gtest-directory}/src/gtest-all.cc)
-target_include_directories(gtest PRIVATE "${gtest-directory}")
-target_include_directories(gtest PUBLIC "${gtest-directory}/include")
-
 add_executable(glyphknit-test
   test/test-main.cc
   test/test-typeset.cc
