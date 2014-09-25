@@ -1,3 +1,8 @@
+set(freetype-version 2.5.3)
+set(freetype-source-directory "freetype-${freetype-version}")
+add_subdirectory(${freetype-source-directory})
+target_include_directories(freetype INTERFACE ${freetype-source-directory}/include)
+
 set(harfbuzz-version 0.9.35)
 set(harfbuzz-source-directory "harfbuzz-${harfbuzz-version}/src")
 add_library(harfbuzz STATIC
@@ -32,10 +37,7 @@ add_library(harfbuzz STATIC
   ${harfbuzz-source-directory}/hb-ot-shape-normalize.cc
   ${harfbuzz-source-directory}/hb-ot-shape-fallback.cc
   ${harfbuzz-source-directory}/hb-icu.cc
-  #${harfbuzz-source-directory}/hb-ucdn.cc
-  #${harfbuzz-source-directory}/hb-ucdn/ucdn.c
 )
 target_compile_definitions(harfbuzz PRIVATE -DHAVE_OT -DHAVE_FREETYPE -DHAVE_ICU -DHAVE_ICU_BUILTIN)
-#target_include_directories(harfbuzz PRIVATE ${harfbuzz-source-directory}/hb-ucdn)
 target_include_directories(harfbuzz INTERFACE ${harfbuzz-source-directory})
 target_link_libraries(harfbuzz icucore freetype)
