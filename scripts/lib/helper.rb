@@ -35,7 +35,7 @@ def in_ucd_dir(filename)
 end
 
 def each_file_of_unicode_data_file(file_path)
-  File.open(file_path) do |f|
+  File.open(file_path, encoding: Encoding::UTF_8) do |f|
     f.each_line do |original_line|
       line = original_line.gsub(/#.*/, "").strip
       next if line.empty?
